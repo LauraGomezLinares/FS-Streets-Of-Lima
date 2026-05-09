@@ -38,7 +38,7 @@ function Footer() {
                         </a>
                     </div>
 
-                    <div className="youtube">
+                    <div className="youtube-logo">
                         <a href="https://www.youtube.com/watch?v=YtF6jiLxc88"
                         target="_blank" rel="noopener noreferrer">
                             <img src="https://cdn.iconscout.com/icon/free/png-256/free-youtube-logo-icon-svg-download-png-1466160.png?f=webp" 
