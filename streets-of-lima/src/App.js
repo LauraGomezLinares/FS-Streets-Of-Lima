@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import CosmeticsStore from "./pages/CosmeticsStore";
 import PremiumStore from "./pages/PremiumStore";
@@ -17,6 +18,7 @@ function App() {
         <Route path="/battle_pass" element={<BattlePass/>}/>
         <Route path="/login" element={<Login/>}/>
       </Routes>
+      <Footer />
     </Router>
   );
 }
