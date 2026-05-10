@@ -1,4 +1,6 @@
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
@@ -9,17 +11,35 @@ import Login from "./pages/Login";
 
 function App() {
   return (
-    <Router>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Home/>}/>
-        <Route path="/cosmetics_store" element={<CosmeticsStore/>}/>
-        <Route path="/premium_store" element={<PremiumStore/>}/>
-        <Route path="/battle_pass" element={<BattlePass/>}/>
-        <Route path="/login" element={<Login/>}/>
-      </Routes>
-      <Footer />
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Navbar />
+        <Routes>
+
+          {/* Pública */}
+          <Route path="/login" element={<Login />} />
+
+          {/* Protegidas */}
+          <Route path="/" element={
+            <ProtectedRoute><Home /></ProtectedRoute>
+          } />
+          <Route path="/cosmetics_store" element={
+            <ProtectedRoute><CosmeticsStore /></ProtectedRoute>
+          } />
+          <Route path="/premium_store" element={
+            <ProtectedRoute><PremiumStore /></ProtectedRoute>
+          } />
+          <Route path="/battle_pass" element={
+            <ProtectedRoute><BattlePass /></ProtectedRoute>
+          } />
+
+          {/* Ruta desconocida → home */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+
+        </Routes>
+        <Footer />
+      </Router>
+    </AuthProvider>
   );
 }
 
