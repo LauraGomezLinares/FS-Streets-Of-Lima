@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import logoStreet from "../assets/Logo_StreetsOfLima.png";
+
 
 function Footer() {
   const linkStyle = {
@@ -64,7 +66,7 @@ function Footer() {
         <div className="footer-center">
           <Link to="/">
             <img
-              src="https://static.wikia.nocookie.net/warframe/images/7/77/AoiAccoladeGlyph.png/revision/latest/scale-to-width-down/250?cb=20241214132840"
+              src={logoStreet}
               alt="logo"
               style={{ width: "110px", height: "110px", objectFit: "cover", border: "1px solid #333", borderRadius: "4px" }}
             />

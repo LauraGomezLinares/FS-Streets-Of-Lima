@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import logoStreet from "../assets/Logo_StreetsOfLima.png";
+
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -100,7 +102,7 @@ export default function Navbar() {
         {/* Logo */}
         <Link to="/" style={{ display: "flex", alignItems: "center", marginRight: "1.25rem", flexShrink: 0 }}>
           <img
-            src="https://static.wikia.nocookie.net/warframe/images/7/77/AoiAccoladeGlyph.png/revision/latest/scale-to-width-down/250?cb=20241214132840"
+            src={logoStreet}
             alt="Streets of Lima"
             style={{ width: "52px", height: "52px", objectFit: "cover", border: "1px solid #333", borderRadius: "3px" }}
           />
