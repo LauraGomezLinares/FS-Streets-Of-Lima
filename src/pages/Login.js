@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import logoStreet from "../assets/Logo_StreetOfLima.png";
+import logoStreet from "../assets/Logo_StreetsOfLima.png";
 
 export default function Login() {
   const { login, register } = useAuth();
@@ -93,7 +93,7 @@ export default function Login() {
         <div className="text-center">
           <img
             src={logoStreet}
-            alt="Street Of Lima"
+            alt="Streets Of Lima"
             className="mb-2 w-full max-w-[320px] object-contain"
          />
        </div>
