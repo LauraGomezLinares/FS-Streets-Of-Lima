@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import logoStreet from "../assets/Logo_StreetOfLima.png";
 
 export default function Login() {
   const { login, register } = useAuth();
@@ -90,10 +91,12 @@ export default function Login() {
 
         {/* Branding */}
         <div className="text-center">
-          <h1 className="mb-2 text-7xl leading-[0.9] tracking-[4px] text-white">
-            STREETS<br />OF LIMA
-          </h1>
-        </div>
+          <img
+            src={logoStreet}
+            alt="Street Of Lima"
+            className="mb-2 w-full max-w-[320px] object-contain"
+         />
+       </div>
 
         {/* Card */}
         <div className="w-full rounded border border-zinc-800 bg-[#111] p-7">
