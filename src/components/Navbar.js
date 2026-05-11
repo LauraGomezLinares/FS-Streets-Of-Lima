@@ -1,196 +1,133 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import logoStreet from "../assets/Logo_StreetsOfLima.png";
-
+import faceSprite from "../assets/FaceSprite.png"; 
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-    setMenuOpen(false);
-  };
-
-  const linkStyle = {
-    color: "#ccc",
-    fontFamily: "'Dogica', monospace",
-    fontSize: "11px",
-    textDecoration: "underline",
-    textUnderlineOffset: "3px",
-    textDecorationColor: "#444",
-    whiteSpace: "nowrap",
-    letterSpacing: "1px",
-    transition: "all 0.2s ease",
-    display: "block",
-  };
-
-  const separatorStyle = {
-    color: "#333",
-    margin: "0 14px",
-    fontFamily: "'Dogica', monospace",
-    fontSize: "11px",
-    userSelect: "none",
-  };
+  const { user, setLoginModalOpen, logout } = useAuth();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const navLinks = [
-    { to: "/", label: "Inicio" },
-    { to: "/cosmetics_store", label: "Tienda de Cosméticos" },
-    { to: "/premium_store", label: "Tienda Premium" },
-    { to: "/battle_pass", label: "Pase de Batalla" },
+    { to: "/", label: "HOME" },
+    { to: "/cosmetics_store", label: "SHOP" },
+    { to: "/battle_pass", label: "COMBO PASS" },
+    { to: "/premium_store", label: "SUNNYS" },
+    
   ];
 
   return (
-    <>
-      <style>{`
-        .navbar { display: flex; align-items: center; background: #000; border-bottom: 1px solid #1a1a1a; padding: 0 1.25rem; height: 70px; gap: 0; font-family: 'Dogica', monospace; position: relative; z-index: 100; }
-        .navbar-desktop-links { display: flex; align-items: center; flex: 1; flex-wrap: wrap; gap: 0; }
-        .navbar-auth-desktop { display: flex; align-items: center; gap: 10px; margin-left: auto; flex-shrink: 0; }
-        .hamburger { display: none; background: transparent; border: 1px solid #333; padding: 6px 9px; cursor: pointer; flex-direction: column; gap: 4px; border-radius: 3px; }
-        .hamburger span { display: block; width: 18px; height: 2px; background: #ccc; transition: all 0.2s; }
-        .mobile-menu { display: none; }
-
-        @media (max-width: 768px) {
-          .navbar-desktop-links { display: none; }
-          .navbar-auth-desktop { display: none; }
-          .hamburger { display: flex; margin-left: auto; }
-          .mobile-menu {
-            display: block;
-            position: absolute;
-            top: 70px;
-            left: 0;
-            right: 0;
-            background: #000;
-            border-bottom: 1px solid #1a1a1a;
-            padding: 1rem 1.25rem;
-            z-index: 99;
-            transform: translateY(-110%);
-            opacity: 0;
-            pointer-events: none;
-            transition: transform 0.25s ease, opacity 0.2s ease;
-          }
-          .mobile-menu.open {
-            transform: translateY(0);
-            opacity: 1;
-            pointer-events: all;
-          }
-          .mobile-link {
-            display: block;
-            color: #ccc;
-            font-family: 'Dogica', monospace;
-            font-size: 11px;
-            text-decoration: underline;
-            text-underline-offset: 3px;
-            text-decoration-color: #444;
-            letter-spacing: 1px;
-            padding: 12px 0;
-            border-bottom: 1px solid #111;
-            transition: color 0.2s;
-          }
-          .mobile-link:last-child { border-bottom: none; }
-          .mobile-link:hover { color: #fff; }
-          .mobile-auth { padding-top: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
-          .mobile-username { font-family: 'Dogica', monospace; font-size: 10px; color: #FFDC32; letter-spacing: 1px; display: flex; align-items: center; gap: 6px; }
-          .mobile-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #4CAF50; }
-        }
-      `}</style>
-
-      <nav className="navbar">
-        {/* Logo */}
-        <Link to="/" style={{ display: "flex", alignItems: "center", marginRight: "1.25rem", flexShrink: 0 }}>
-          <img
-            src={logoStreet}
-            alt="Streets of Lima"
-            style={{ width: "52px", height: "52px", objectFit: "cover", border: "1px solid #333", borderRadius: "3px" }}
-          />
-        </Link>
-
-        {/* Desktop links */}
-        <div className="navbar-desktop-links">
-          {navLinks.map((link, i) => (
-            <span key={link.to} style={{ display: "flex", alignItems: "center" }}>
-              {i > 0 && <span style={separatorStyle}>|</span>}
-              <Link
-                to={link.to}
-                style={linkStyle}
-                onMouseEnter={(e) => { e.target.style.color = "#fff"; e.target.style.textDecorationColor = "#888"; }}
-                onMouseLeave={(e) => { e.target.style.color = "#ccc"; e.target.style.textDecorationColor = "#444"; }}
-              >
-                {link.label}
-              </Link>
-            </span>
-          ))}
-        </div>
-
-        {/* Desktop auth */}
-        <div className="navbar-auth-desktop">
-          <span style={separatorStyle}>|</span>
-          {user ? (
-            <>
-              <span style={{ fontFamily: "'Dogica', monospace", fontSize: "10px", color: "#FFDC32", letterSpacing: "1px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <span style={{ display: "inline-block", width: "7px", height: "7px", borderRadius: "50%", background: "#4CAF50", flexShrink: 0 }} />
-                {user.username}
-              </span>
-              <button
-                onClick={handleLogout}
-                style={{ background: "transparent", border: "1px solid #333", color: "#666", fontFamily: "'Dogica', monospace", fontSize: "9px", letterSpacing: "1px", textTransform: "uppercase", padding: "6px 10px", borderRadius: "3px", cursor: "pointer", transition: "all 0.2s ease" }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#ff5555"; e.currentTarget.style.color = "#ff5555"; e.currentTarget.style.background = "#140000"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333"; e.currentTarget.style.color = "#666"; e.currentTarget.style.background = "transparent"; }}
-              >
-                Salir
-              </button>
-            </>
-          ) : (
+    <nav className="relative z-40 flex items-center justify-end bg-[#0a0a0a] border-b border-zinc-800 p-4 h-[70px] font-dogica">
+      
+      {/* SECCIÓN CENTRAL: Enlaces */}
+      <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-8 text-xs text-zinc-400">
+        {navLinks.map((link, index) => (
+          <div key={link.to} className="flex items-center">
             <Link
-              to="/login"
-              style={linkStyle}
-              onMouseEnter={(e) => { e.target.style.color = "#fff"; e.target.style.textDecorationColor = "#888"; }}
-              onMouseLeave={(e) => { e.target.style.color = "#ccc"; e.target.style.textDecorationColor = "#444"; }}
+              to={link.to}
+              className="hover:text-yellow-300 transition-colors uppercase tracking-widest"
             >
-              Iniciar Sesión
+              {link.label}
             </Link>
-          )}
-        </div>
-
-        {/* Hamburger */}
-        <button className="hamburger" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menú">
-          <span style={{ transform: menuOpen ? "rotate(45deg) translate(4px, 4px)" : "none" }} />
-          <span style={{ opacity: menuOpen ? 0 : 1 }} />
-          <span style={{ transform: menuOpen ? "rotate(-45deg) translate(4px, -4px)" : "none" }} />
-        </button>
-      </nav>
-
-      {/* Mobile menu */}
-      <div className={`mobile-menu ${menuOpen ? "open" : ""}`}>
-        {navLinks.map((link) => (
-          <Link key={link.to} to={link.to} className="mobile-link" onClick={() => setMenuOpen(false)}>
-            {link.label}
-          </Link>
+            {index < navLinks.length - 1 && (
+              <span className="ml-8 text-zinc-700">|</span>
+            )}
+          </div>
         ))}
-        <div className="mobile-auth">
-          {user ? (
-            <>
-              <span className="mobile-username">
-                <span className="mobile-dot" />
-                {user.username}
-              </span>
-              <button
-                onClick={handleLogout}
-                style={{ background: "transparent", border: "1px solid #333", color: "#666", fontFamily: "'Dogica', monospace", fontSize: "9px", letterSpacing: "1px", textTransform: "uppercase", padding: "6px 10px", borderRadius: "3px", cursor: "pointer" }}
-              >
-                Salir
-              </button>
-            </>
-          ) : (
-            <Link to="/login" className="mobile-link" onClick={() => setMenuOpen(false)}>
-              Iniciar Sesión
-            </Link>
-          )}
-        </div>
       </div>
-    </>
+
+      {/* SECCIÓN DERECHA: Autenticación / Perfil */}
+      <div className="flex items-center flex-shrink-0">
+        {!user ? (
+          <button 
+            onClick={() => setLoginModalOpen(true)}
+            className="text-[10px] text-zinc-300 hover:text-yellow-300 transition-all tracking-widest uppercase border border-zinc-700 hover:border-yellow-300 px-4 py-2 rounded bg-zinc-900/50"
+          >
+            LOG IN
+          </button>
+        ) : (
+          <div className="relative">
+            <button 
+              onClick={() => setIsProfileOpen(!isProfileOpen)} 
+              className="w-12 h-12 border-2 border-zinc-600 hover:border-yellow-300 transition-colors bg-zinc-800 rounded overflow-hidden"
+            >
+              <img 
+                src={faceSprite} 
+                alt="Avatar" 
+                className="w-full h-full object-cover scale-150 rendering-pixelated" 
+              />
+            </button>
+
+           
+            {isProfileOpen && (
+              <div className="absolute top-16 right-0 w-[22vw] min-w-[320px] bg-[#111] border border-zinc-800 rounded shadow-2xl p-6 font-dogica z-50">
+                
+                {/* Cabecera */}
+                <div className="flex items-center gap-4 mb-5">
+                    <img src={faceSprite} alt="Avatar" className="w-16 h-16 border-2 border-zinc-700 rounded rendering-pixelated bg-zinc-800 aspect-square object-cover" />
+                    <div>
+                        <div className="text-yellow-300 text-sm md:text-base">{user.username}</div>
+                        <div className="text-zinc-500 text-[10px] mt-2 tracking-widest">Level 15 | 120 Hrs</div>
+                    </div>
+                </div>
+                
+                {/* Personaje */}
+                <div className="flex items-center gap-3 mb-4 bg-[#1a1a1a] p-2 rounded border border-zinc-800/50">
+                    <img src={faceSprite} alt="Fav Char" className="w-10 h-10 border border-zinc-700 rounded rendering-pixelated bg-zinc-800 aspect-square object-cover" />
+                    <div className="text-zinc-400 text-[10px]">
+                      Fav Char: <br/><span className="text-white text-xs">Roldan</span>
+                    </div>
+                </div>
+                
+                <hr className="border-zinc-800 my-5" />
+                
+                {/* YOUR FRIENDS */}
+                <div className="text-zinc-500 text-[10px] mb-3 tracking-widest">YOUR FRIENDS</div>
+                <div className="flex items-center justify-between bg-[#1a1a1a] p-2 rounded mb-4 border border-zinc-800/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-zinc-800 border border-zinc-700 rounded overflow-hidden aspect-square">
+                         <img src={faceSprite} alt="Amigo" className="w-full h-full object-cover rendering-pixelated opacity-50" />
+                    </div>
+                    <span className="text-[10px] text-zinc-300 tracking-widest">Natalia</span>
+                  </div>
+                  <button className="text-green-500 hover:text-green-300 hover:scale-125 transition-all text-xl leading-none mb-1">+</button>
+                </div>
+
+                {/* ADD FRIEND */}
+                <div className="text-zinc-500 text-[10px] mb-2 tracking-widest">ADD FRIEND</div>
+                <div className="flex items-center gap-2 mb-4">
+                  <input 
+                    type="text" 
+                    maxLength={10}
+                    placeholder="USERNAME" 
+                    className="flex-1 bg-[#0a0a0a] border border-zinc-700 rounded px-3 py-2 text-[10px] text-white outline-none focus:border-yellow-300 uppercase tracking-widest font-sans"
+                  />
+                  <button className="bg-yellow-400 hover:bg-yellow-300 text-black px-3 py-2 rounded text-[10px] font-bold transition-colors">
+                    &gt;
+                  </button>
+                </div>
+
+                {/* FRIEND REQUESTS */}
+                <div className="text-zinc-500 text-[10px] mb-2 tracking-widest">REQUESTS</div>
+                <div className="flex items-center justify-between bg-[#0a0a0a] p-2 rounded mb-5 border border-zinc-800/50">
+                  <span className="text-[9px] text-zinc-400 tracking-widest">GSon</span>
+                  <div className="flex gap-3">
+                    <button className="text-green-500 hover:text-green-400 hover:scale-125 transition-transform text-xs">✔</button>
+                    <button className="text-red-500 hover:text-red-400 hover:scale-125 transition-transform text-xs">✖</button>
+                  </div>
+                </div>
+
+                {/* Salir */}
+                <button 
+                  onClick={() => { logout(); setIsProfileOpen(false); }} 
+                  className="w-full bg-red-900/20 text-red-500 border border-red-900/50 py-3 text-[10px] tracking-widest hover:bg-red-900/40 hover:border-red-500 transition-all rounded"
+                >
+                  LOG OUT
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </nav>
   );
 }
