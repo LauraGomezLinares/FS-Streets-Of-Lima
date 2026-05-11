@@ -68,7 +68,7 @@ function Footer() {
             <img
               src={logoStreet}
               alt="logo"
-              style={{ width: "110px", height: "110px", objectFit: "cover", border: "1px solid #333", borderRadius: "4px" }}
+              style={{ width: "220px", height: "150px", objectFit: "cover", border: "none", borderRadius: "4px" }}
             />
           </Link>
           <div className="footer-icons">
