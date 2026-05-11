@@ -28,7 +28,7 @@ export default function Login() {
     }
     setLoading(true);
     try {
-      // ✅ FIX: se pasa password para que AuthContext pueda validar
+      // Se pasa password para que AuthContext pueda validar
       login({ email: loginForm.email, password: loginForm.password });
       navigate("/");
     } catch (err) {
@@ -55,7 +55,7 @@ export default function Login() {
     }
     setLoading(true);
     try {
-      // ✅ FIX: se pasa password para que AuthContext pueda guardarla
+      // Se pasa password para que AuthContext pueda guardarla
       register({
         email: registerForm.email,
         username: registerForm.username,
@@ -70,23 +70,7 @@ export default function Login() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0a0a0a] font-sans">
-
-      {/* Fondo */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(255,220,50,0.04) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,220,50,0.04) 1px, transparent 1px)
-            `,
-            backgroundSize: "48px 48px",
-          }}
-        />
-        <div className="absolute bottom-[-120px] left-1/2 h-[300px] w-[600px] -translate-x-1/2 bg-[radial-gradient(ellipse,rgba(255,220,50,0.08)_0%,transparent_70%)]" />
-      </div>
-
+    <div className="relative flex min-h-screen items-center justify-center w-full">
       <div className="relative z-10 flex w-full max-w-[420px] flex-col items-center gap-8 p-6">
 
         {/* Branding */}
