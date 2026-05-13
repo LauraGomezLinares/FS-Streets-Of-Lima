@@ -6,9 +6,8 @@ const SESSION_KEY = "sol_user";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(JSON.parse(localStorage.getItem(SESSION_KEY)) || null);
-  
-  
   const [isLoginModalOpen, setLoginModalOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false); 
   const [toastMessage, setToastMessage] = useState(null);
 
   // Función para disparar el mensaje borroso en el centro
@@ -52,6 +51,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{ 
       user, login, register, logout, 
       isLoginModalOpen, setLoginModalOpen, 
+      isProfileOpen, setIsProfileOpen,
       toastMessage, triggerToast 
     }}>
       {children}
