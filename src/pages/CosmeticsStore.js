@@ -21,19 +21,18 @@ function CosmeticsStore() {
         const data = await rpta.json();
 
         setCharacters(data);
-        //setSelectedCharacter(data?.[0] ?? null); //si es q hay chara se agarra el primero sino null
+        setSelectedCharacter(data?.[0] ?? null); //si es q hay chara se agarra el primero sino null
       }catch (error){
         console.log("Error lol: ", error);
       } finally{
-        //setLoading(false);
+        setLoading(false);
       }
     };
     fetchCharacters();
   }, [])
 
   return (
-    <div
-      className="min-h-screen bg-black overflow-hidden relative text-white"
+    <div className="min-h-screen bg-black overflow-hidden relative text-white"
       style={{
         imageRendering: 'pixelated'
       }}
@@ -51,11 +50,11 @@ function CosmeticsStore() {
       />
       <div className="relative z-10 px-8 py-8">
         <div className="mb-10">
-          <h1 className=" font-['Press_Start_2P'] text-4xl lg:text-5xl uppercase text-yellow-400 leading-tight
+          <h1 className=" font-dogica text-4xl lg:text-5xl uppercase text-yellow-400 leading-tight
             drop-shadow-[0_0_15px_rgba(250,204,21,0.35)] ">
             STREET MARKET
           </h1>
-          <p className=" mt-5 text-zinc-500 uppercase  tracking-[0.35em]  text-[10px] font-['Press_Start_2P']">
+          <p className=" mt-5 text-zinc-500 uppercase  tracking-[0.35em]  text-[10px] font-dogica">
             SELECT YOUR FIGHTER
           </p>
 
@@ -96,14 +95,14 @@ function CosmeticsStore() {
                   <div className=" absolute bottom-[35px] w-[260px] h-[28px]  bg-black/50  blur-2xl  rounded-full " />
                   <div className=" absolute  -bottom-[95px] bg-black/65  border border-zinc-800  backdrop-blur-xl  rounded-2xl
                     px-5 py-4  w-[320px]  z-20 shadow-2xl">
-                    <p className={` uppercase text-[8px] tracking-[0.3em] mb-3 font-['Press_Start_2P'] 
+                    <p className={` uppercase text-[8px] tracking-[0.3em] mb-3 font-dogica 
                       ${selectedCharacter.rarityColor}  `}>
                       {selectedCharacter.rarity}
                     </p>
-                    <h2 className="  text-[18px] uppercase font-['Press_Start_2P']  leading-[1.5] mb-5 ">
+                    <h2 className="  text-[18px] uppercase font-dogica  leading-[1.5] mb-5 ">
                       {selectedCharacter.name}
                     </h2>
-                    <button className=" font-['Press_Start_2P'] bg-yellow-400 hover:bg-white text-black uppercase
+                    <button className=" font-dogica bg-yellow-400 hover:bg-white text-black uppercase
                       w-full py-4 rounded-xl text-[9px] transition-all active:scale-95 shadow-[0_0_30px_rgba(250,204,21,0.35)]">
                       Buy
                     </button>
