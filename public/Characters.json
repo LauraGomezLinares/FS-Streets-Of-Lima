@@ -1,0 +1,54 @@
+[
+    {
+        "id": 1,
+        "name": "Franco Vidal",
+        "rarity": "Legendary",
+        "price": 45,
+        "image": "/assets/Imagen_FrancoVidal.png",
+        "featured": true,
+        "gradient": "from-yellow-300 via-yellow-500 to-yellow-900",
+        "rarityColor": "text-yellow-300",
+        "border": "border-yellow-400",
+        "glow": "shadow-[0_0_45px_rgba(250,204,21,0.35)]"
+    },
+
+    {
+        "id": 2,
+        "name": "Cobrador de Combi",
+        "rarity": "Rare",
+        "price": 25,
+        "image": "/assets/Imagen_CobradorCombi.png",
+        "featured": false,
+        "gradient": "from-blue-400 via-blue-700 to-black",
+        "rarityColor": "text-blue-300",
+        "border": "border-blue-500",
+        "glow": "shadow-[0_0_35px_rgba(59,130,246,0.25)]"
+    },
+
+    {
+        "id": 3,
+        "name": "Pollo de Pios Chicken",
+        "rarity": "Epic",
+        "price": 35,
+        "image": "/assets/Imagen_PolloPiosChicken.png",
+        "featured": false,
+        "gradient": "from-purple-500 via-fuchsia-700 to-black",
+        "rarityColor": "text-fuchsia-300",
+        "border": "border-fuchsia-500",
+        "glow": "shadow-[0_0_35px_rgba(217,70,239,0.25)]"
+    },
+
+    {
+        "id": 4,
+        "name": "Ing. Manuel Espinoza Vasquez",
+        "rarity": "Legendary",
+        "price": 50,
+        "image": "/assets/Imagen_ManuelEspinozaVasquez.png",
+        "featured": true,
+        "gradient": "from-yellow-200 via-yellow-500 to-yellow-950",
+        "rarityColor": "text-yellow-300",
+        "border": "border-yellow-400",
+        "glow": "shadow-[0_0_45px_rgba(250,204,21,0.35)]"
+    }
+
+]
