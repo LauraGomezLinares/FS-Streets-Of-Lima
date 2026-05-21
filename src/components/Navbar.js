@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
   const { user, setLoginModalOpen, logout, isProfileOpen, setIsProfileOpen } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navLinks = [
     { to: "/", label: "HOME" },
@@ -15,10 +16,40 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="relative z-40 flex items-center justify-end bg-[#0a0a0a] border-b border-zinc-800 p-4 h-[70px] font-dogica">
+    <nav className="relative z-40 flex items-center justify-between lg:justify-end bg-[#0a0a0a] border-b border-zinc-800 p-4 h-[70px] font-dogica">
       
-      {/* SECCIÓN CENTRAL: Enlaces */}
-      <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-8 text-xs text-zinc-400">
+      <button 
+        className="lg:hidden text-zinc-400 hover:text-yellow-400 p-2"
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+            className="absolute top-[70px] left-0 w-full bg-[#111] border-b border-zinc-800 z-50 flex flex-col items-center py-4 lg:hidden shadow-2xl"
+          >
+            {navLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-full text-center py-4 text-xs text-zinc-400 hover:text-yellow-300 hover:bg-zinc-900 transition-colors uppercase tracking-widest"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="hidden lg:flex absolute left-1/2 -translate-x-1/2 items-center gap-8 text-xs text-zinc-400">
         {navLinks.map((link, index) => (
           <div key={link.to} className="flex items-center">
             <Link
@@ -63,7 +94,7 @@ export default function Navbar() {
                   animate={{ opacity: 1, scale: 1, x: 0 }} 
                   exit={{ opacity: 0, scale: 0.95, x: 20 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="absolute top-16 right-0 w-[22vw] min-w-[320px] bg-[#111] border border-zinc-800 rounded shadow-2xl p-6 font-dogica z-50 origin-top-right"
+                  className="absolute top-16 right-0 w-[85vw] max-w-[320px] lg:w-[22vw] lg:min-w-[320px] bg-[#111] border border-zinc-800 rounded shadow-2xl p-6 font-dogica z-50 origin-top-right"
                 >
                   {/* Cabecera */}
                   <div className="flex items-center gap-4 mb-5">
@@ -120,7 +151,17 @@ export default function Navbar() {
                     </div>
                   </div>
 
-                  {/* Salir */}
+                  {/* BOTÓN DE ADMIN */}
+                  {user.email === "admin@streetsoflima.com" && (
+                    <Link 
+                      to="/admin" 
+                      onClick={() => setIsProfileOpen(false)}
+                      className="w-full flex items-center justify-center bg-green-900/30 text-green-400 border border-green-900/50 py-3 mb-2 text-[10px] tracking-widest hover:bg-green-500 hover:text-black transition-all rounded"
+                    >
+                      [ SYSTEM ADMIN ]
+                    </Link>
+                  )}
+
                   <button 
                     onClick={() => { logout(); setIsProfileOpen(false); }} 
                     className="w-full bg-red-900/20 text-red-500 border border-red-900/50 py-3 text-[10px] tracking-widest hover:bg-red-900/40 hover:border-red-500 transition-all rounded"

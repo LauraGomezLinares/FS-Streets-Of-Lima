@@ -10,6 +10,8 @@ import BattlePass from "./pages/BattlePass";
 import Layout from "./components/Layout";
 import LoginModal from "./components/LoginModal";
 import NotFoundPage from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AdminDashboard from "./pages/AdminDashboard";
 
 
 
@@ -23,6 +25,7 @@ function AnimatedRoutes() {
         <Route path="/premium_store" element={<PageTransition><PremiumStore /></PageTransition>} />
         <Route path="/battle_pass" element={<PageTransition><BattlePass /></PageTransition>} />
         <Route path="*" element={<PageTransition> <NotFoundPage /> </PageTransition>}></Route>
+        <Route path="/admin" element={ <ProtectedRoute><PageTransition><AdminDashboard /></PageTransition></ProtectedRoute> } />
       </Routes>
     </AnimatePresence>
   );
