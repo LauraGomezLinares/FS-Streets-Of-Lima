@@ -4,7 +4,7 @@ export default function SkeletonLoaderChara(){
 
       <div className="absolute w-[600px] h-[600px] rounded-full bg-yellow-400/10 blur-[120px] animate-pulse" />
 
-      <div className="relative overflow-hidden rounded-[30px] border-2 border-zinc-800 w-[320px] h-[700px] bg-zinc-950 z-10">
+      <div className="relative overflow-hidden rounded-[30px] border-2 border-zinc-800 w-[450px] h-[750px] bg-zinc-950 z-10">
 
         <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.6s_infinite] bg-gradient-to-r
             from-transparent via-white/[0.04] to-transparent" />

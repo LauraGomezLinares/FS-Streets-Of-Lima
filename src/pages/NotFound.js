@@ -1,12 +1,37 @@
 import { Link } from "react-router-dom";
-
+import yapesito from "../assets/yapesitoproy.png"
 
 export default function NotFound(){
     return(
-        <div>
-            <h1>404 not found</h1>
-            <p>Que miras crack?</p>
-            <p>Vuelve p causa <Link to="/">Home</Link>.</p>
+        <div className="min-h-screen bg-black overflow-hidden relative text-white ">
+            <div className="absolute inset-0 pointer-events-none z-0">
+                <div className="absolute inset-0"
+                    style={{
+                        backgroundImage: `linear-gradient(rgba(255,220,50,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,220,50,0.04) 1px, transparent 1px)`,
+                        backgroundSize: "48px 48px",
+                    }}
+                />
+                <div className="absolute bottom-[-120px] left-1/2 h-[300px] w-[600px] -translate-x-1/2 bg-[radial-gradient(ellipse,rgba(255,220,50,0.08)_0%,transparent_70%)]" />
+            </div>
+
+            <div className="relative z-10 flex flex-col items-center justify-center text-center px-8 min-h-screen">
+
+                <img src={yapesito} alt="yapesito?" className="w-[425px] object-contain mb-2"
+                     style={{ imageRendering: 'pixelated'}}></img>
+                    
+                <h1 className="font-dogica text-zin-600 text-2xl tracking-widest my-3">Error 404 - No se encontro la página.</h1>
+
+                <p className="font-dogica text-zinc-500 text-[15px] leading-relaxed max-w-[360px] mb-10">Muy probablemente por falta de fondos</p>
+
+                <h1 className="font-dogica text-yellow-400 text-3xl uppercase mt-4 mb-4 drop-shadow-[0_0_45px_rgba(250,204,21,0.75)]">¿Yapesito?</h1>
+
+                <p className="font-dogica text-zinc-600 text-[9px] leading-loose max-w-[380px] mb-10">
+                    Es por una buena causa. Si no te sientes cómodo puedes volver al{' '}
+                    <Link to="/" className="text-yellow-400 hover:text-white transition-colors underline 
+                        underline-offset-4">inicio</Link> , si quieres. </p>
+            </div>
+
+            
         </div>
     );
 }

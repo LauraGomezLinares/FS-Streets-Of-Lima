@@ -15,7 +15,7 @@ function CharactersCardStore({ character, index, isSelected, onSelect }) {
 
       <div className=" absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 bg-white/[0.03] "/>
       {character.featured && (
-        <div className=" absolute top-5 left-5  bg-yellow-400  text-black  font-['Press_Start_2P']  uppercase  text-[9px]  px-4 py-3  
+        <div className=" absolute top-5 left-5  bg-yellow-400  text-black  font-dogica  uppercase  text-[9px]  px-4 py-3  
           rounded-full z-30 tracking-wider shadow-lg " > FEATURED </div>
       )}
       <motion.img src={character.image} alt={character.name} animate={{ y: [-4, 4, -4], }} transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", }}
@@ -24,15 +24,15 @@ function CharactersCardStore({ character, index, isSelected, onSelect }) {
          drop-shadow-[0_0_18px_rgba(0,0,0,0.5)] " />
       <div className=" absolute bottom-0 left-0 right-0 z-30  p-6 bg-gradient-to-t from-black via-black/90  to-transparent ">
 
-        <p className={` uppercase text-[9px] mb-3  tracking-[0.25em] font-['Press_Start_2P']  ${character.rarityColor}`} >
+        <p className={` uppercase text-[9px] mb-3  tracking-[0.25em] font-dogica  ${character.rarityColor}`} >
           {character.rarity}
         </p>
 
-        <h2 className=" uppercase  leading-[1.45]  text-white  font-['Press_Start_2P'] text-[18px] drop-shadow-lg  ">
+        <h2 className=" uppercase  leading-[1.45]  text-white  font-dogica] text-[18px] drop-shadow-lg  ">
           {character.name}
         </h2>
 
-        <div className=" mt-5  flex items-center gap-3 font-['Press_Start_2P'] " >
+        <div className=" mt-5  flex items-center gap-3 font-dogica " >
           <span className=" text-yellow-400 text-[16px]  ">
             S/
           </span>
