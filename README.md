@@ -1,70 +1,71 @@
-# Getting Started with Create React App
+# 🎮 Streets of Lima - Web Frontend (AP1)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## 📖 Descripción del Proyecto
+Esta es la aplicación web Front-end para **Streets of Lima**, un juego de peleas/brawler. Este proyecto adapta los requerimientos web a la interfaz inmersiva de un videojuego multijugador. 
 
-## Available Scripts
+El proyecto cumple con los criterios de desarrollo Single Page Application (SPA), enrutamiento, consumo de APIs locales, responsividad adaptativa y un sistema de autenticación simulado con protección de rutas.
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## 🛠️ Detalles Técnicos y Tecnologías
+El proyecto ha sido desarrollado utilizando las siguientes tecnologías obligatorias y complementarias:
+* **React:** Librería principal para la construcción de interfaces.
+* **React Router DOM:** Para la navegación sin recarga de páginas (SPA) y protección de rutas.
+* **Tailwind CSS:** Framework de estilos utilitarios para un diseño 100% a medida y responsivo.
+* **Framer Motion:** Librería de animaciones utilizada para transiciones de modales, efectos de *hover* en tarjetas y feedback visual (estilo *Marvel Rivals* / juegos modernos).
+* **Context API & LocalStorage:** Utilizados para crear un estado global de autenticación persistente (`AuthContext`), simulando sesiones de usuario reales.
+* **Fetch API:** Para el consumo asíncrono de un archivo JSON local (`Characters.json`).
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 🗺️ Arquitectura y Páginas
 
-### `npm test`
+El proyecto consta de una navegación principal y componentes modulares:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+1. **Lobby / Menú Principal (`/`):** 
+   - Funciona como el `Home`. Contiene el Leaderboard, selección de personaje, árbol de habilidades (interactivo) y emparejamiento.
+   - **Responsive Inteligente:** Al detectar pantallas táctiles/móviles, el Lobby se bloquea mostrando una pantalla de "PC EXCLUSIVE" (ya que el juego requiere teclado/ratón), pero permite seguir navegando por las tiendas mediante un menú hamburguesa.
+2. **Street Market (`/cosmetics_store`):**
+   - Consume el archivo `Characters.json` de manera asíncrona usando `useEffect` y `fetch`.
+   - Implementa `SkeletonLoaders` para manejar los tiempos de carga de la API simulada.
+3. **Sunnys Store (`/premium_store`):** 
+   - Tienda de moneda premium con diseño estructurado en pilares y animaciones escalonadas.
+4. **Combo Pass (`/battle_pass`):** 
+   - Sistema de pase de batalla con scroll horizontal nativo, lógica de recompensas (Free/Premium) y notificaciones tipo "Toast" dinámicas.
+5. **Error 404 (`*`):** 
+   - Página de error personalizada temática ("Yapesito") para manejar rutas inexistentes.
 
-### `npm run build`
+---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🚀 Cómo correr el proyecto localmente
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. Clona el repositorio en tu máquina local.
+2. Abre una terminal en la carpeta raíz del proyecto.
+3. Instala las dependencias necesarias ejecutando:
+ - npm install
+4. Nota: Asegúrate de tener instalados react-router-dom y framer-motion.
+5. Inicia el servidor de desarrollo:
+- npm start
+6. El proyecto se abrirá automáticamente en `http://localhost:3000`.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+---
 
-### `npm run eject`
+## 🔐 Usuarios de Prueba y MODO ADMINISTRADOR (Dashboard Privado)
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+El sistema de login está simulado en el Front-end usando LocalStorage. Puedes registrar cualquier cuenta nueva desde el modal interactivo de **LOG IN -> REGISTER**, pero hemos preparado usuarios específicos para revisión:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 👤 Usuario Estándar (Jugador)
+Puedes crear tu propia cuenta en el botón de registro, o usar cualquier credencial falsa, ya que el sistema la guardará localmente. Intenta darle clic al botón "SKILL TREE" o a los botones "+" de añadir amigos sin estar logueado para ver el sistema de bloqueo de rutas/acciones.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### 🛡️ MODO ADMINISTRADOR (Dashboard Protegido)
+Para evaluar la **Protección de Rutas** y el **Dashboard Privado** (Requisitos de rúbrica), existe un panel secreto de gestión de servidor. 
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+**Cómo acceder:**
+1. Abre el modal de **LOG IN**.
+2. Ve a la pestaña **REGISTER** (si es la primera vez en ese navegador) y crea una cuenta usando **ESTE CORREO EXACTO**:
+   - **Email:** `admin@streetsoflima.com`
+   - **Password:** `admin123` *(o cualquier contraseña mayor a 6 caracteres)*
+3. Inicia sesión.
+4. Abre el panel de **Perfil** (haciendo clic en el avatar arriba a la derecha).
+5. Verás que ha aparecido un botón verde exclusivo: `[ SYSTEM ADMIN ]`.
+6. Haz clic para entrar al **Dashboard Privado** (ruta `/admin`). Esta ruta está protegida por un `<ProtectedRoute>`. Si intentas entrar directamente por la URL sin ser este usuario, el sistema te regresará al inicio.
