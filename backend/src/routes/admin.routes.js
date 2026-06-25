@@ -1,11 +1,10 @@
 const express = require("express");
-const authMiddleware = require("../middleware/auth.middleware");
-const adminMiddleware = require("../middleware/admin.middleware");
+const { authMiddleware, adminMiddleware } = require("../middleware/auth.middleware"); // 👈 Con llaves y en singular
 const { listUsers, banUser, getStats } = require("../controllers/admin.controller");
 
 const router = express.Router();
 
-// Todas las rutas de este archivo requieren: JWT válido + rol ADMIN
+// Ahora que ambas funciones existen en auth.middleware.js, ya no llegará como undefined
 router.use(authMiddleware, adminMiddleware);
 
 router.get("/users", listUsers);

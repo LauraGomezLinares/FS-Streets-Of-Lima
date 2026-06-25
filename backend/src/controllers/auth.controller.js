@@ -4,6 +4,7 @@ const prisma = require("../lib/prisma");
 const { generateOtp, getOtpExpiry, isOtpExpired } = require("../utils/otp");
 const { sendOtpEmail } = require("../utils/mailer");
 
+// Generación de JWT firmados con expiraciones según el Rol (Requerimiento 3 y 7)
 function signToken(user) {
   const expiresIn = user.role === "ADMIN"
     ? process.env.ADMIN_JWT_EXPIRES_IN || "30m"
@@ -16,6 +17,7 @@ function signToken(user) {
   );
 }
 
+// Log de Auditoría de Accesos en Base de Datos (Requerimiento 7)
 async function logAttempt({ userId, req, success, isAdminLogin = false }) {
   try {
     await prisma.loginLog.create({
@@ -23,7 +25,7 @@ async function logAttempt({ userId, req, success, isAdminLogin = false }) {
         userId,
         success,
         isAdminLogin,
-        ipAddress: req.ip,
+        ipAddress: req.ip || req.headers["x-forwarded-for"] || "127.0.0.1",
         userAgent: req.headers["user-agent"] || null,
       },
     });
@@ -32,7 +34,7 @@ async function logAttempt({ userId, req, success, isAdminLogin = false }) {
   }
 }
 
-// POST /auth/register
+// POST /auth/register -> Crea usuario y solicita OTP directo (Garantiza Requerimiento 4)
 async function register(req, res) {
   try {
     const { username, email, password } = req.body;
@@ -52,24 +54,29 @@ async function register(req, res) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const otpCode = generateOtp();
 
+    // Transacción/Creación del usuario con su progreso inicial y OTP listo
     const user = await prisma.user.create({
       data: {
         username,
         email,
         passwordHash,
         role: "PLAYER",
-        battlePass: { create: { level: 1, xp: 0 } }, // crea su progreso inicial
+        otpCode,
+        otpExpiresAt: getOtpExpiry(),
+        otpVerified: false,
+        battlePass: { create: { level: 1, xp: 0 } }, // Mapeado al cascade schema
       },
     });
 
-    // Login directo tras registro (puedes forzar OTP aquí también si prefieres)
-    const token = signToken(user);
-    await logAttempt({ userId: user.id, req, success: true });
+    // Envío del correo con el código OTP
+    await sendOtpEmail(user.email, otpCode);
 
     return res.status(201).json({
-      token,
-      user: { id: user.id, username: user.username, email: user.email, role: user.role },
+      message: "Usuario registrado con éxito. Código OTP enviado a tu correo.",
+      otpRequired: true,
+      userId: user.id, // El frontend redirige al paso OTP inmediatamente
     });
   } catch (err) {
     console.error(err);
@@ -77,7 +84,7 @@ async function register(req, res) {
   }
 }
 
-// POST /auth/login  -> valida credenciales y envía OTP (no entrega JWT todavía)
+// POST /auth/login -> Valida credenciales y despacha OTP (Requerimiento 4)
 async function login(req, res) {
   try {
     const { email, password } = req.body;
@@ -90,7 +97,7 @@ async function login(req, res) {
       return res.status(401).json({ error: "Credenciales incorrectas." });
     }
     if (user.isBanned) {
-      return res.status(403).json({ error: "Esta cuenta ha sido suspendida." });
+      return res.status(403).json({ error: "Esta cuenta ha sido suspendida por la administración." });
     }
 
     const validPassword = await bcrypt.compare(password, user.passwordHash);
@@ -99,7 +106,6 @@ async function login(req, res) {
       return res.status(401).json({ error: "Credenciales incorrectas." });
     }
 
-    // Genera y envía OTP (Requerimiento 4)
     const otpCode = generateOtp();
     await prisma.user.update({
       where: { id: user.id },
@@ -111,7 +117,7 @@ async function login(req, res) {
     return res.status(200).json({
       message: "Código OTP enviado a tu correo.",
       otpRequired: true,
-      userId: user.id, // el frontend lo necesita para el siguiente paso
+      userId: user.id,
     });
   } catch (err) {
     console.error(err);
@@ -119,25 +125,26 @@ async function login(req, res) {
   }
 }
 
-// POST /auth/verify-otp -> valida el código y AHÍ SÍ entrega el JWT
+// POST /auth/verify-otp -> Valida el código y libera el Token JWT definitivo (Requerimiento 3)
 async function verifyOtp(req, res) {
   try {
     const { userId, code } = req.body;
     if (!userId || !code) {
-      return res.status(400).json({ error: "Faltan datos." });
+      return res.status(400).json({ error: "Faltan parámetros obligatorios." });
     }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
 
     if (isOtpExpired(user.otpExpiresAt)) {
-      return res.status(400).json({ error: "El código OTP ha expirado, solicita uno nuevo." });
+      return res.status(400).json({ error: "El código OTP ha expirado. Solicita uno nuevo." });
     }
     if (user.otpCode !== code) {
       await logAttempt({ userId: user.id, req, success: false, isAdminLogin: user.role === "ADMIN" });
       return res.status(400).json({ error: "Código OTP incorrecto." });
     }
 
+    // Limpieza de campos OTP y verificación exitosa
     await prisma.user.update({
       where: { id: user.id },
       data: { otpCode: null, otpExpiresAt: null, otpVerified: true },
@@ -156,42 +163,50 @@ async function verifyOtp(req, res) {
   }
 }
 
-// POST /auth/resend-otp
+// POST /auth/resend-otp -> Regeneración dinámica en caso de expiración
 async function resendOtp(req, res) {
   try {
     const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: "ID de usuario requerido." });
+
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
 
     const otpCode = generateOtp();
     await prisma.user.update({
       where: { id: user.id },
-      data: { otpCode, otpExpiresAt: getOtpExpiry() },
+      data: { otpCode, otpExpiresAt: getOtpExpiry(), otpVerified: false },
     });
+    
     await sendOtpEmail(user.email, otpCode);
 
-    return res.status(200).json({ message: "Nuevo código enviado." });
+    return res.status(200).json({ message: "Nuevo código enviado a tu correo." });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: "Error al reenviar OTP." });
+    return res.status(500).json({ error: "Error al reenviar el código OTP." });
   }
 }
 
-// GET /users/me
+// GET /users/me -> Recuperación de perfil en sesión (Requiere JWT válido previo)
 async function me(req, res) {
-  const user = await prisma.user.findUnique({
-    where: { id: req.user.id },
-    include: { battlePass: true },
-  });
-  if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: { battlePassProgress: true }, // Consistente con el modelo cascade
+    });
+    if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
 
-  return res.json({
-    id: user.id,
-    username: user.username,
-    email: user.email,
-    role: user.role,
-    battlePass: user.battlePass,
-  });
+    return res.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      battlePass: user.battlePassProgress,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Error al obtener perfil." });
+  }
 }
 
 module.exports = { register, login, verifyOtp, resendOtp, me };

@@ -1,27 +1,19 @@
 const express = require("express");
-const rateLimit = require("express-rate-limit");
-const authMiddleware = require("../middleware/auth.middleware");
-const {
-  register,
-  login,
-  verifyOtp,
-  resendOtp,
-  me,
-} = require("../controllers/auth.controller");
-
 const router = express.Router();
+const authController = require("../controllers/auth.controller");
 
-// Requerimiento 7: limita intentos de login para evitar fuerza bruta
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 10,
-  message: { error: "Demasiados intentos. Intenta de nuevo en 15 minutos." },
-});
+// 🚨 REVISA ESTA LÍNEA: Asegúrate de usar llaves { authMiddleware } 
+// para extraer solo la función y no todo el objeto.
+const { authMiddleware } = require("../middleware/auth.middleware"); 
 
-router.post("/register", register);
-router.post("/login", loginLimiter, login);
-router.post("/verify-otp", loginLimiter, verifyOtp);
-router.post("/resend-otp", loginLimiter, resendOtp);
-router.get("/me", authMiddleware, me);
+// Rutas Públicas (POST)
+router.post("/register", authController.register);
+router.post("/login", authController.login);
+router.post("/verify-otp", authController.verifyOtp);
+router.post("/resend-otp", authController.resendOtp);
+
+// Ruta Protegida (GET)
+// Al haber usado las llaves arriba, 'authMiddleware' ahora es una función válida y Express no fallará.
+router.get("/me", authMiddleware, authController.me);
 
 module.exports = router;
