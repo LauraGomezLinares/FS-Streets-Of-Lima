@@ -32,6 +32,8 @@ export default function LoginModal() {
     try {
       // Al hacer login, el backend retorna { success: true, userId: data.userId }
       const res = await login({ email: loginForm.email, password: loginForm.password });
+
+      console.log("Respuesta del servidor:", res);
       if (res && res.userId) {
         setLocalUserId(res.userId);
       }
