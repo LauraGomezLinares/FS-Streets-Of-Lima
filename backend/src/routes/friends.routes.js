@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const friendsController = require("../controllers/friends.controller");
-const authMiddleware = require("../middleware/auth.middleware"); // Tu middleware de protección de rutas
+
+const { authMiddleware } = require("../middleware/auth.middleware"); 
 
 // Todas las rutas de amigos requieren estar autenticado
 router.use(authMiddleware);
