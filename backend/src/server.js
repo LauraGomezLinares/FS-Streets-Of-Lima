@@ -6,6 +6,7 @@ const { Server } = require("socket.io");
 
 const authRoutes = require("./routes/auth.routes");
 const adminRoutes = require("./routes/admin.routes");
+const friendsRoutes = require('../routes/friends.routes');
 const setupSocket = require("./sockets/socket");
 
 const app = express();
@@ -51,7 +52,7 @@ app.get("/", (req, res) => {
 
 app.use("/auth", authRoutes);
 app.use("/admin", adminRoutes);
-
+app.use('/api/friends', friendsRoutes);
 // ==========================================
 // CONTROL DE ERRORES Y RUTAS NO ENCONTRADAS
 // ==========================================

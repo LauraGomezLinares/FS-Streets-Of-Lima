@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import faceSprite from "../assets/FaceSprite.png"; 
@@ -7,6 +7,118 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function Navbar() {
   const { user, setLoginModalOpen, logout, isProfileOpen, setIsProfileOpen } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Estados para el sistema de Amigos
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [friendsList, setFriendsList] = useState([]);
+
+  // URL base de tu backend (ajusta si tienes un archivo de configuración)
+  const API_URL = "https://streets-of-lima-backend.onrender.com/api";
+
+  // Helper para enviar el token JWT en cada petición
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token"); // Ajusta si usas cookies o context
+    return {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    };
+  };
+
+  const fetchPendingRequests = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/friends/requests`, {
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPendingRequests(data);
+      }
+    } catch (error) {
+      console.error("Error obteniendo solicitudes:", error);
+    }
+  }, [API_URL]);
+
+  const fetchFriends = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/friends`, {
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFriendsList(data);
+      }
+    } catch (error) {
+      console.error("Error obteniendo amigos:", error);
+    }
+  }, [API_URL]);
+
+  // Cargar datos al abrir el menú de perfil
+  useEffect(() => {
+    if (isProfileOpen && user) {
+      fetchPendingRequests();
+      fetchFriends();
+    }
+  }, [isProfileOpen, user, fetchPendingRequests, fetchFriends]);
+
+  const handleSearchUser = async (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    try {
+      const res = await fetch(`${API_URL}/friends/search?q=${searchQuery}`, {
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSearchResults(data);
+      }
+    } catch (error) {
+      console.error("Error buscando usuarios:", error);
+    }
+  };
+
+  const handleSendRequest = async (targetUserId) => {
+    try {
+      const res = await fetch(`${API_URL}/friends/request`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ targetUserId }),
+      });
+      
+      if (res.ok) {
+        setSearchQuery(""); 
+        setSearchResults([]);
+        alert("Solicitud enviada exitosamente");
+      } else {
+        const errorData = await res.json();
+        alert(errorData.error || "Error al enviar la solicitud");
+      }
+    } catch (error) {
+      console.error("Error enviando solicitud:", error);
+    }
+  };
+
+  const handleRespondRequest = async (friendshipId, status) => {
+    try {
+      const res = await fetch(`${API_URL}/friends/${friendshipId}/respond`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ status }),
+      });
+
+      if (res.ok) {
+        // Remover localmente para actualizar la UI sin recargar
+        setPendingRequests(prev => prev.filter(req => req.id !== friendshipId));
+        if (status === 'ACCEPTED') {
+          fetchFriends(); // Recargar lista de amigos
+        }
+      }
+    } catch (error) {
+      console.error("Error respondiendo solicitud:", error);
+    }
+  };
 
   const navLinks = [
     { to: "/", label: "HOME" },
@@ -115,40 +227,79 @@ export default function Navbar() {
                   
                   <hr className="border-zinc-800 my-5" />
                   
-                  {/* YOUR FRIENDS */}
+                  {/* YOUR FRIENDS DINÁMICO */}
                   <div className="text-zinc-500 text-[10px] mb-3 tracking-widest">YOUR FRIENDS</div>
-                  <div className="flex items-center justify-between bg-[#1a1a1a] p-2 rounded mb-4 border border-zinc-800/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-zinc-800 border border-zinc-700 rounded overflow-hidden aspect-square">
-                           <img src={faceSprite} alt="Amigo" className="w-full h-full object-cover rendering-pixelated opacity-50" />
+                  {friendsList.length === 0 ? (
+                    <div className="text-[9px] text-zinc-600 mb-4 italic">No tienes amigos agregados aún.</div>
+                  ) : (
+                    friendsList.map((friendship) => (
+                      <div key={friendship.id} className="flex items-center justify-between bg-[#1a1a1a] p-2 rounded mb-4 border border-zinc-800/50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-zinc-800 border border-zinc-700 rounded overflow-hidden aspect-square">
+                              <img src={friendship.friend.imageUrl || faceSprite} alt="Amigo" className="w-full h-full object-cover rendering-pixelated opacity-50" />
+                          </div>
+                          <span className="text-[10px] text-zinc-300 tracking-widest">{friendship.friend.username}</span>
+                        </div>
+                        <button className="text-green-500 hover:text-green-300 hover:scale-125 transition-all text-xl leading-none mb-1">+</button>
                       </div>
-                      <span className="text-[10px] text-zinc-300 tracking-widest">Natalia</span>
-                    </div>
-                    <button className="text-green-500 hover:text-green-300 hover:scale-125 transition-all text-xl leading-none mb-1">+</button>
-                  </div>
+                    ))
+                  )}
 
-                  {/* ADD FRIEND */}
+                  {/* ADD FRIEND (Buscador) */}
                   <div className="text-zinc-500 text-[10px] mb-2 tracking-widest">ADD FRIEND</div>
-                  <div className="flex items-center gap-2 mb-4">
+                  <form onSubmit={handleSearchUser} className="flex items-center gap-2 mb-4">
                     <input 
                       type="text" 
-                      maxLength={10}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      maxLength={15}
                       placeholder="USERNAME" 
                       className="flex-1 bg-[#0a0a0a] border border-zinc-700 rounded px-3 py-2 text-[10px] text-white outline-none focus:border-yellow-300 uppercase tracking-widest font-sans"
                     />
-                    <button className="bg-yellow-400 hover:bg-yellow-300 text-black px-3 py-2 rounded text-[10px] font-bold transition-colors">
+                    <button type="submit" className="bg-yellow-400 hover:bg-yellow-300 text-black px-3 py-2 rounded text-[10px] font-bold transition-colors">
                       &gt;
                     </button>
-                  </div>
+                  </form>
 
-                  {/* FRIEND REQUESTS */}
-                  <div className="text-zinc-500 text-[10px] mb-2 tracking-widest">REQUESTS</div>
-                  <div className="flex items-center justify-between bg-[#0a0a0a] p-2 rounded mb-5 border border-zinc-800/50">
-                    <span className="text-[9px] text-zinc-400 tracking-widest">GSon</span>
-                    <div className="flex gap-3">
-                      <button className="text-green-500 hover:text-green-400 hover:scale-125 transition-transform text-xs">✔</button>
-                      <button className="text-red-500 hover:text-red-400 hover:scale-125 transition-transform text-xs">✖</button>
+                  {/* RESULTADOS DE BÚSQUEDA */}
+                  {searchResults.length > 0 && (
+                    <div className="mb-4 flex flex-col gap-2">
+                      {searchResults.map((resUser) => (
+                        <div key={resUser.id} className="flex items-center justify-between bg-[#0a0a0a] p-2 border border-yellow-900/50 rounded">
+                           <span className="text-[9px] text-yellow-300 tracking-widest">{resUser.username}</span>
+                           <button 
+                             onClick={() => handleSendRequest(resUser.id)} 
+                             className="text-xs bg-yellow-900/40 hover:bg-yellow-400 hover:text-black text-yellow-500 px-2 py-1 rounded transition-all"
+                           >
+                             ADD
+                           </button>
+                        </div>
+                      ))}
                     </div>
+                  )}
+
+                  {/* FRIEND REQUESTS DINÁMICO */}
+                  <div className="text-zinc-500 text-[10px] mb-2 tracking-widest">REQUESTS</div>
+                  <div className="flex flex-col gap-2 mb-5">
+                    {pendingRequests.length === 0 ? (
+                      <div className="text-[9px] text-zinc-600 py-2 italic">NO PENDING REQUESTS</div>
+                    ) : (
+                      pendingRequests.map((req) => (
+                        <div key={req.id} className="flex items-center justify-between bg-[#0a0a0a] p-2 rounded border border-zinc-800/50">
+                          <span className="text-[9px] text-zinc-400 tracking-widest">{req.user.username}</span>
+                          <div className="flex gap-3">
+                            <button 
+                              onClick={() => handleRespondRequest(req.id, 'ACCEPTED')}
+                              className="text-green-500 hover:text-green-400 hover:scale-125 transition-transform text-xs"
+                            >✔</button>
+                            <button 
+                              onClick={() => handleRespondRequest(req.id, 'REJECTED')}
+                              className="text-red-500 hover:text-red-400 hover:scale-125 transition-transform text-xs"
+                            >✖</button>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
 
                   {/* BOTÓN DE ADMIN */}
