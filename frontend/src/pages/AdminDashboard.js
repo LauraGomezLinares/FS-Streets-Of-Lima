@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function AdminDashboard() {
   const { token } = useAuth(); 
-  const API_URL = "https://streets-of-lima-backend.onrender.com";
+  const API_URL = "https://fs-streets-of-lima-backend.onrender.com";
 
   const [usersList, setUsersList] = useState([]);
   const [stats, setStats] = useState(null); 

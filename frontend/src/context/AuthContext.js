@@ -4,7 +4,7 @@ import { io } from "socket.io-client";
 const AuthContext = createContext();
 const SESSION_KEY = "sol_user";
 const TOKEN_KEY = "sol_token";
-const API_URL = "https://streets-of-lima-backend.onrender.com";
+const API_URL = "https://fs-streets-of-lima-backend.onrender.com";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(JSON.parse(localStorage.getItem(SESSION_KEY)) || null);
