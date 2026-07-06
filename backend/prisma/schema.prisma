@@ -29,6 +29,8 @@ model User {
   otpExpiresAt  DateTime?
   otpVerified   Boolean  @default(false)
 
+  totalPlaySeconds Int     @default(0)
+  
   // Relaciones
   battlePass    BattlePassProgress?
   purchases     Purchase[]

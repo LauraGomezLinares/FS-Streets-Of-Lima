@@ -14,6 +14,53 @@ export default function Navbar() {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [friendsList, setFriendsList] = useState([]);
 
+  const [sessionSeconds, setSessionSeconds] = useState(0);
+  useEffect(() => {
+    let interval = null;
+    let secondsAccumulated = 0; // Guardamos registro local temporal
+    
+    if (user) {
+      interval = setInterval(() => {
+        setSessionSeconds((prev) => {
+          const newSeconds = prev + 1;
+          secondsAccumulated++;
+
+          // Guardado de seguridad cada 5 minutos
+          if (secondsAccumulated >= 300) {
+            fetch(`${API_URL}/auth/save-playtime`, {
+              method: "POST",
+              headers: getAuthHeaders(),
+              body: JSON.stringify({ secondsToAdd: secondsAccumulated })
+            }).catch(err => console.error("Fallo al sincronizar tiempo:", err));
+            
+            secondsAccumulated = 0; // Reiniciamos el acumulador local tras guardar
+          }
+
+          return newSeconds;
+        });
+      }, 1000);
+    } else {
+      setSessionSeconds(0);
+      if (interval) clearInterval(interval);
+    }
+
+    // Cleanup: Intentar guardar los segundos sobrantes si el jugador cierra la página o se desloguea
+    return () => {
+      if (interval) clearInterval(interval);
+      if (secondsAccumulated > 0) {
+        // Usamos keepalive para que la petición no se cancele al cerrar la pestaña
+        fetch(`${API_URL}/auth/save-playtime`, {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ secondsToAdd: secondsAccumulated }),
+          keepalive: true 
+        }).catch(err => console.error("Fallo al guardar al salir:", err));
+      }
+    };
+  }, [user]); // eslint-disable-line
+
+  const userLevel = user?.battlePass?.level || 1;
+
   // URL base de tu backend
   const API_URL = "https://fs-streets-of-lima-backend.onrender.com";
 
