@@ -61,6 +61,11 @@ export default function Navbar() {
 
   const userLevel = user?.battlePass?.level || 1;
 
+  const baseTotalSeconds = user?.totalPlaySeconds || 0; 
+  const totalCombinedSeconds = baseTotalSeconds + sessionSeconds;
+  const displayHours = Math.floor(totalCombinedSeconds / 3600);
+  const displayMinutes = Math.floor((totalCombinedSeconds % 3600) / 60);
+
   // URL base de tu backend
   const API_URL = "https://fs-streets-of-lima-backend.onrender.com";
 
@@ -259,7 +264,9 @@ export default function Navbar() {
                       <img src={faceSprite} alt="Avatar" className="w-16 h-16 border-2 border-zinc-700 rounded rendering-pixelated bg-zinc-800 aspect-square object-cover" />
                       <div>
                           <div className="text-yellow-300 text-sm md:text-base">{user.username}</div>
-                          <div className="text-zinc-500 text-[10px] mt-2 tracking-widest">Level 15 | 120 Hrs</div>
+                          <div className="text-zinc-500 text-[10px] mt-2 tracking-widest uppercase">
+                            Level {userLevel} | {displayHours} Hrs {displayMinutes} Min
+                          </div>
                       </div>
                   </div>
                   

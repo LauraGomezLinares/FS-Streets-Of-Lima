@@ -34,6 +34,24 @@ async function logAttempt({ userId, req, success, isAdminLogin = false }) {
   }
 }
 
+async function savePlaytime(req, res) {
+  try {
+    const { secondsToAdd } = req.body;
+    if (!secondsToAdd || secondsToAdd <= 0) return res.json({ success: true });
+
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { totalPlaySeconds: { increment: secondsToAdd } }
+    });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Error guardando tiempo:", err);
+    return res.status(500).json({ error: "Error al guardar el tiempo." });
+  }
+}
+
+// No olvides agregar 'savePlaytime' al module.exports al final del archivo
+
 // POST /auth/register -> Crea usuario y solicita OTP directo (Garantiza Requerimiento 4)
 async function register(req, res) {
   try {
@@ -209,4 +227,4 @@ async function me(req, res) {
   }
 }
 
-module.exports = { register, login, verifyOtp, resendOtp, me };
+module.exports = { register, login, verifyOtp, resendOtp, me, savePlaytime };
