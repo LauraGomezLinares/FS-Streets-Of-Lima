@@ -15,6 +15,7 @@ export default function Navbar() {
   const [friendsList, setFriendsList] = useState([]);
 
   const [sessionSeconds, setSessionSeconds] = useState(0);
+  const [notification, setNotification] = useState(null);
   useEffect(() => {
     let interval = null;
     let secondsAccumulated = 0; // Guardamos registro local temporal
@@ -141,10 +142,14 @@ export default function Navbar() {
       if (res.ok) {
         setSearchQuery(""); 
         setSearchResults([]);
-        alert("Solicitud enviada exitosamente");
+        // Reemplazamos el alert() por nuestro nuevo Pop-up de éxito
+        setNotification({ type: "success", message: "SOLICITUD ENVIADA" });
+        setTimeout(() => setNotification(null), 3000); // Desaparece en 3 segundos
       } else {
         const errorData = await res.json();
-        alert(errorData.error || "Error al enviar la solicitud");
+        // Reemplazamos el alert() por nuestro Pop-up de error
+        setNotification({ type: "error", message: errorData.error || "ERROR AL ENVIAR" });
+        setTimeout(() => setNotification(null), 3000);
       }
     } catch (error) {
       console.error("Error enviando solicitud:", error);
@@ -265,7 +270,7 @@ export default function Navbar() {
                       <div>
                           <div className="text-yellow-300 text-sm md:text-base">{user.username}</div>
                           <div className="text-zinc-500 text-[10px] mt-2 tracking-widest uppercase">
-                            Level {userLevel} | {displayHours} Hrs {displayMinutes} Min
+                            Level {userLevel} | {displayHours} Hrs
                           </div>
                       </div>
                   </div>
@@ -378,6 +383,25 @@ export default function Navbar() {
           </div>
         )}
       </div>
+      <AnimatePresence>
+        {notification && (
+          <motion.div 
+            initial={{ opacity: 0, x: 50 }} 
+            animate={{ opacity: 1, x: 0 }} 
+            exit={{ opacity: 0, x: 50 }}
+            className={`fixed top-[90px] right-4 lg:right-10 z-50 px-5 py-4 bg-[#0a0a0a] border-l-4 shadow-2xl flex items-center gap-3 ${
+              notification.type === 'success' ? 'border-yellow-400' : 'border-red-500'
+            }`}
+          >
+            <span className={`text-base ${notification.type === 'success' ? 'text-yellow-400' : 'text-red-500'}`}>
+              {notification.type === 'success' ? '✔' : '✖'}
+            </span>
+            <span className="text-white text-[10px] tracking-widest uppercase font-dogica mt-0.5">
+              {notification.message}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }
