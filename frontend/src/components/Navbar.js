@@ -5,7 +5,7 @@ import faceSprite from "../assets/FaceSprite.png";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
-  const { user, setLoginModalOpen, logout, isProfileOpen, setIsProfileOpen } = useAuth();
+  const { user, token, setLoginModalOpen, logout, isProfileOpen, setIsProfileOpen } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Estados para el sistema de Amigos
@@ -19,7 +19,6 @@ export default function Navbar() {
 
   // Helper para enviar el token JWT en cada petición
   const getAuthHeaders = () => {
-    const token = localStorage.getItem("token"); // Ajusta si usas cookies o context
     return {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`
