@@ -14,8 +14,8 @@ export default function Navbar() {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [friendsList, setFriendsList] = useState([]);
 
-  // URL base de tu backend (ajusta si tienes un archivo de configuración)
-  const API_URL = "https://streets-of-lima-backend.onrender.com/api";
+  // URL base de tu backend
+  const API_URL = "https://streets-of-lima-backend.onrender.com";
 
   // Helper para enviar el token JWT en cada petición
   const getAuthHeaders = () => {
