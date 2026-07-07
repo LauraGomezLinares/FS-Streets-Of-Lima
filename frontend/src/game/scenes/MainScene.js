@@ -35,6 +35,7 @@ export default class MainScene extends Phaser.Scene {
 
         this.players.push(playerSprite);
       }
+      this.scene.launch("UIScene", { slots: slots });
     });
 
     // SISTEMA DE ENTRADA (Teclado)
