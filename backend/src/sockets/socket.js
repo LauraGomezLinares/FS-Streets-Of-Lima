@@ -15,7 +15,7 @@ function setupSocket(io) {
     if (socket.user?.id) {
       socket.join(`user:${socket.user.id}`);
       socket.join(`lobby:${socket.user.id}`);
-      socket.currentLobby = socket.user.id; // Rastreamos en qué lobby está metido
+      socket.currentLobby = socket.user.id; // Rastreamos en qué lobby está metido el desgraciao
       console.log(`Usuario conectado: ${socket.user.username}`);
     }
 
@@ -27,7 +27,7 @@ function setupSocket(io) {
       });
     });
 
-    //  Un jugador (P1) envía una invitación a un amigo
+    //  Un jugador (P1) envía una invitación a un amix
     socket.on("lobby:invite:send", ({ targetUserId }) => {
       if (!socket.user) return;
       io.to(`user:${targetUserId}`).emit("lobby:invite:receive", {
@@ -53,6 +53,24 @@ function setupSocket(io) {
       });
     });
 
+    socket.on("lobby:ready", ({ isReady }) => {
+      if (!socket.user || !socket.currentLobby) return;
+      
+      // Le avisamos a todos en el lobby que este jugador cambió su estado
+      io.to(`lobby:${socket.currentLobby}`).emit("lobby:player_ready", {
+        userId: socket.user.id,
+        isReady
+      });
+    });
+
+    // El líder da la orden de Iniciar Partida
+    socket.on("lobby:start_game", () => {
+      if (!socket.user || !socket.currentLobby) return;
+      
+      // Le ordenamos a las computadoras de todos en el lobby que arranquen Phaser
+      io.to(`lobby:${socket.currentLobby}`).emit("lobby:game_started");
+    });
+
     socket.on("game:move", (data) => {
         // Le mandamos el movimiento a todos en la sala EXCEPTO al que lo envió (broadcast)
         socket.to(`lobby:${socket.currentLobby}`).emit("game:player_moved", data);
@@ -64,7 +82,7 @@ function setupSocket(io) {
         io.to(`lobby:${socket.currentLobby}`).emit("lobby:member_left", {
           userId: socket.user.id,
           username: socket.user.username,
-          isHost: socket.user.id === socket.currentLobby // ¿El que se fue era el líder?
+          isHost: socket.user.id === socket.currentLobby // ¿El que se fue era el líder? chi o ño
         });
       }
       console.log(`❌ Desconectado: ${socket.id}`);

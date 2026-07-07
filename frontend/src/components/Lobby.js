@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../context/LobbyContext'; 
 import GameWindow from '../game/GameWindow';
@@ -7,31 +7,55 @@ import faceSprite from '../assets/FaceSprite.png';
 import idleGif from '../assets/PlaceholderPersonajeIdle.gif';
 
 export default function Lobby() {
-    const { user, triggerToast, setIsProfileOpen } = useAuth();
+    const { user, socket, triggerToast, setIsProfileOpen } = useAuth();
     const { slots } = useLobby(); 
     const [isSkillTreeOpen, setIsSkillTreeOpen] = useState(false);
 
     const [isPlaying, setIsPlaying] = useState(false);
 
-    // Funciones bloqueadas para invitados
+    const [amIReady, setAmIReady] = useState(false);
+
+    const isHost = slots[0]?.id === user?.id;
+    const guests = slots.filter(s => s && !s.isHost);
+    const allReady = guests.length > 0 ? guests.every(s => s.isReady) : true;
+
+    useEffect(() => {
+        if (!socket) return;
+        const handleStart = () => setIsPlaying(true);
+        
+        socket.on("lobby:game_started", handleStart);
+        return () => socket.off("lobby:game_started", handleStart);
+    }, [socket]);
+
     const handleProtectedAction = (action) => {
-        if (!user) {
-            triggerToast("LOG IN TO UNLOCK THIS FEATURE!");
-            return;
-        }
+        if (!user) return triggerToast("LOG IN TO UNLOCK THIS FEATURE!");
         if (action === "skills") setIsSkillTreeOpen(!isSkillTreeOpen);
         if (action === "invite") setIsProfileOpen(true); 
+    };
 
-        if (action === "play") setIsPlaying(true);
+    const handleMainButton = () => {
+        if (!user) return triggerToast("LOG IN TO PLAY!");
+
+        if (isHost) {
+            if (allReady) {
+                socket.emit("lobby:start_game"); // Dá la orden a todos
+            } else {
+                triggerToast("ESPERANDO A QUE TODOS ESTÉN LISTOS");
+            }
+        } else {
+            // Si soy un amigo, me pongo ready o cancelo el ready
+            const newStatus = !amIReady;
+            setAmIReady(newStatus);
+            socket.emit("lobby:ready", { isReady: newStatus });
+        }
     };
 
     if (isPlaying) {
         return (
             <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center">
-                {/* Botón para salir del juego y volver al lobby */}
                 <button 
                     onClick={() => setIsPlaying(false)}
-                    className="absolute top-6 left-6 text-red-500 font-dogica border border-red-500 bg-black/50 px-4 py-2 hover:bg-red-500 hover:text-black z-50 transition-all text-xs"
+                    className="absolute top-6 left-6 text-red-500 font-dogica border border-red-500 bg-black/50 px-4 py-2 hover:bg-red-500 hover:text-black z-50 transition-all text-[10px] tracking-widest"
                 >
                     &lt; LEAVE GAME
                 </button>
@@ -78,16 +102,9 @@ export default function Lobby() {
                 
                 <div className="mb-6 w-full max-w-[300px]">
                     {!user ? (
-                        <input 
-                            type="text" 
-                            placeholder="ENTER GUEST NAME" 
-                            maxLength={10}
-                            className="w-full bg-[#111] border-b-2 border-zinc-700 px-4 py-3 text-center text-xs text-white outline-none focus:border-yellow-400 uppercase tracking-widest font-sans"
-                        />
+                        <input type="text" placeholder="ENTER GUEST NAME" maxLength={10} className="w-full bg-[#111] border-b-2 border-zinc-700 px-4 py-3 text-center text-xs text-white outline-none focus:border-yellow-400 uppercase tracking-widest font-sans" />
                     ) : (
-                        <div className="text-center text-yellow-300 text-xl tracking-widest uppercase">
-                            {user.username}
-                        </div>
+                        <div className="text-center text-yellow-300 text-xl tracking-widest uppercase">{user.username}</div>
                     )}
                 </div>
 
@@ -95,21 +112,22 @@ export default function Lobby() {
                     {slots.map((player, index) => {
                         if (player) {
                             return (
-                                /* SLOT OCUPADO */
                                 <div key={index} className="w-16 h-16 md:w-20 md:h-20 bg-zinc-800 border-2 border-yellow-400 rounded flex items-center justify-center relative shadow-[0_0_15px_rgba(255,220,50,0.3)]">
                                     <img src={faceSprite} alt={player.username} className="w-full h-full object-cover rendering-pixelated" />
                                     <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-[8px] px-1 rounded">P{index + 1}</div>
                                     <div className="absolute -bottom-5 text-[8px] text-yellow-400 tracking-widest uppercase truncate w-full text-center">{player.username}</div>
+                                    
+                                    {/* 🔥 EL CHECK DE READY VERDE */}
+                                    {player.isReady && (
+                                        <div className="absolute -bottom-2 -right-2 bg-green-500 rounded-full w-5 h-5 flex items-center justify-center border-2 border-[#111] shadow-[0_0_10px_rgba(34,197,94,0.6)]">
+                                            <span className="text-black text-[10px] font-bold">✔</span>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         } else {
                             return (
-                                /* SLOT VACÍO */
-                                <button 
-                                    key={index}
-                                    onClick={() => handleProtectedAction("invite")}
-                                    className="w-16 h-16 md:w-20 md:h-20 bg-[#111] border-2 border-dashed border-zinc-700 hover:border-zinc-500 rounded flex items-center justify-center text-zinc-600 hover:text-white transition-colors relative group"
-                                >
+                                <button key={index} onClick={() => handleProtectedAction("invite")} className="w-16 h-16 md:w-20 md:h-20 bg-[#111] border-2 border-dashed border-zinc-700 hover:border-zinc-500 rounded flex items-center justify-center text-zinc-600 hover:text-white transition-colors relative group">
                                     <span className="text-2xl group-hover:scale-125 transition-transform">+</span>
                                     <div className="absolute -top-2 -right-2 bg-zinc-800 text-zinc-500 text-[8px] px-1 rounded border border-zinc-700">P{index + 1}</div>
                                 </button>
@@ -117,13 +135,17 @@ export default function Lobby() {
                         }
                     })}
                 </div>
-
-                <button onClick={() => handleProtectedAction("play")} 
-                className="bg-yellow-400 hover:bg-yellow-300 text-black px-12 py-4 text-xl tracking-[0.2em] rounded transition-all active:scale-95 shadow-[0_0_20px_rgba(255,220,50,0.4)]">
-                PLAY
+                <button 
+                    onClick={handleMainButton}
+                    className={`px-12 py-4 text-xl tracking-[0.2em] rounded transition-all ${
+                        isHost 
+                        ? (allReady ? "bg-yellow-400 hover:bg-yellow-300 text-black active:scale-95 shadow-[0_0_20px_rgba(255,220,50,0.4)]" : "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700")
+                        : (amIReady ? "bg-green-500 hover:bg-green-400 text-black active:scale-95 shadow-[0_0_20px_rgba(34,197,94,0.4)]" : "bg-yellow-400 hover:bg-yellow-300 text-black active:scale-95 shadow-[0_0_20px_rgba(255,220,50,0.4)]")
+                    }`}
+                >
+                    {isHost ? "PLAY" : (amIReady ? "CANCEL READY" : "READY")}
                 </button>
             </div>
-
             <div className="col-span-1 flex flex-col items-center justify-start pt-4">
                 <div className="mb-3 text-center z-20">
                     <span className="text-[11px] text-zinc-300 tracking-widest uppercase bg-[#111] border border-zinc-700 px-4 py-1.5 rounded-full shadow-md">

@@ -31,7 +31,7 @@ export function LobbyProvider({ children }) {
           const newSlots = [...prev];
           const emptyIndex = newSlots.findIndex(s => s === null);
           if (emptyIndex !== -1) {
-            newSlots[emptyIndex] = { id: targetId, username: targetUsername, isHost: false };
+            newSlots[emptyIndex] = { id: targetId, username: targetUsername, isHost: false, isReady: false };
           }
           return newSlots;
         });
@@ -62,6 +62,19 @@ export function LobbyProvider({ children }) {
     };
   }, [socket, user, triggerToast]);
 
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handlePlayerReady = ({ userId, isReady }) => {
+      setSlots(prev => prev.map(player => 
+        player?.id === userId ? { ...player, isReady } : player
+      ));
+    };
+
+    socket.on("lobby:player_ready", handlePlayerReady);
+    return () => socket.off("lobby:player_ready", handlePlayerReady);
+  }, [socket]);
+  
   return (
     <LobbyContext.Provider value={{ slots, setSlots }}>
       {children}
