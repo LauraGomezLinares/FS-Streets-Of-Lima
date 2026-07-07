@@ -154,7 +154,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{ 
-      user, token, loading, login, verifyOtp, register, logout, 
+      user, setUser, token, loading, login, verifyOtp, register, logout, 
       isLoginModalOpen, setLoginModalOpen, 
       isProfileOpen, setIsProfileOpen,
       toastMessage, triggerToast,

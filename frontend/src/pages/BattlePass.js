@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 
+// ÍCONOS SVG
 const CheckIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
 );
@@ -17,21 +18,52 @@ const PlaceholderIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
 );
 
+// STACKED NOTIFICATIONS COMPONENT
+const ToastNotification = ({ id, title, text, onRemove }) => {
+  const [isLeaving, setIsLeaving] = useState(false);
+
+  useEffect(() => {
+    const exitTimer = setTimeout(() => setIsLeaving(true), 4000);
+    const removeTimer = setTimeout(() => onRemove(id), 4500);
+    return () => { clearTimeout(exitTimer); clearTimeout(removeTimer); };
+  }, [id, onRemove]);
+
+  return (
+    <div className={`pointer-events-auto flex w-64 items-center gap-4 border border-zinc-800 bg-[#111] p-4 shadow-2xl transition-all duration-300
+      ${isLeaving ? 'translate-x-12 opacity-0' : 'translate-x-0 opacity-100'}
+    `}>
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center text-yellow-400">
+        {title === 'XP OBTENIDA' ? <span className="text-xl font-bold">+</span> : <CheckIcon />}
+      </div>
+      <div className="flex flex-col flex-1">
+        <span className="text-[10px] font-bold text-yellow-400 tracking-widest uppercase">{title}</span>
+        <span className="text-[9px] text-zinc-300 uppercase">{text}</span>
+      </div>
+      <button onClick={() => { setIsLeaving(true); setTimeout(() => onRemove(id), 300); }} className="text-zinc-600 hover:text-white">
+        ✕
+      </button>
+    </div>
+  );
+};
+
 const API_URL = "https://fs-streets-of-lima-backend.onrender.com";
 
+// COMPONENTE PRINCIPAL
 export default function BattlePass() {
-  const { user, token, triggerToast } = useAuth();
+  // 🔥 NUEVO: Traemos 'setUser' para sincronizar con el Navbar
+  const { user, setUser, token, triggerToast } = useAuth();
   
-  // ESTADOS SINCRONIZADOS CON EL BACKEND
   const [level, setLevel] = useState(1);
   const [xp, setXp] = useState(0);
   const [claimedFree, setClaimedFree] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 🔥 NUEVO: Estados para notificaciones Stacked
+  const [popups, setPopups] = useState([]);
+
   const xpNeeded = 1000;
   const totalLevels = 20;
 
-  // SCROLL LOGIC
   const scrollContainerRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -41,7 +73,19 @@ export default function BattlePass() {
     "Authorization": `Bearer ${token}`
   }), [token]);
 
-  // CARGAR PROGRESO DESDE LA BASE DE DATOS
+  // Función auxiliar para actualizar el Navbar global
+  const updateGlobalUserLevel = useCallback((newLevel) => {
+    if (user && user.battlePass?.level !== newLevel) {
+      const updatedUser = { ...user, battlePass: { ...user.battlePass, level: newLevel } };
+      setUser(updatedUser);
+      localStorage.setItem("sol_user", JSON.stringify(updatedUser)); // Guarda para recargas
+    }
+  }, [user, setUser]);
+
+  const removePopup = useCallback((id) => {
+    setPopups(prev => prev.filter(p => p.id !== id));
+  }, []);
+
   useEffect(() => {
     if (!token) return;
     const fetchProgress = async () => {
@@ -52,6 +96,7 @@ export default function BattlePass() {
           setLevel(data.level);
           setXp(data.xp);
           setClaimedFree(data.claimedLevels || []);
+          updateGlobalUserLevel(data.level); // Sincroniza al cargar
         }
       } catch (error) {
         console.error("Error al cargar pase:", error);
@@ -60,7 +105,7 @@ export default function BattlePass() {
       }
     };
     fetchProgress();
-  }, [token, getAuthHeaders]);
+  }, [token, getAuthHeaders, updateGlobalUserLevel]);
 
   const checkScroll = () => {
     if (scrollContainerRef.current) {
@@ -82,7 +127,6 @@ export default function BattlePass() {
     }
   };
 
-  // RECLAMAR RECOMPENSA (Sincronizado)
   const handleClaim = async (lvlToClaim, rewardText) => {
     if (!user) return triggerToast("DEBES INICIAR SESIÓN PARA RECLAMAR.");
     if (claimedFree.includes(lvlToClaim) || lvlToClaim > level) return;
@@ -97,17 +141,14 @@ export default function BattlePass() {
       if (res.ok) {
         const data = await res.json();
         setClaimedFree(data.claimedLevels);
-        triggerToast(`¡RECLAMADO: +${rewardText}!`);
-      } else {
-        const error = await res.json();
-        triggerToast(`ERROR: ${error.error}`);
+        // 🔥 Lanza notificación Stacked
+        setPopups(prev => [...prev, { id: Date.now() + Math.random(), title: "RECLAMADO", text: rewardText }]);
       }
     } catch (error) {
       console.error(error);
     }
   };
 
-  // BOTÓN DEV (Sincronizado)
   const handleAddXp = async () => {
     if (!user) return;
     try {
@@ -119,7 +160,10 @@ export default function BattlePass() {
         const data = await res.json();
         setLevel(data.level);
         setXp(data.xp);
-        triggerToast("¡GANASTE 250 XP!");
+        updateGlobalUserLevel(data.level); // 🔥 Sincroniza Navbar en vivo al subir de nivel
+
+        // 🔥 Lanza notificación Stacked
+        setPopups(prev => [...prev, { id: Date.now() + Math.random(), title: "XP OBTENIDA", text: "250 XP" }]);
       }
     } catch (error) {
       console.error(error);
@@ -133,11 +177,24 @@ export default function BattlePass() {
   }
 
   return (
-    <div className="relative flex min-h-[90vh] w-full flex-col items-center pt-10 pb-20 bg-[#0a0a0a] font-dogica text-white uppercase tracking-widest">
+    <div className="relative flex min-h-[90vh] w-full flex-col items-center pt-10 pb-20 bg-[#0a0a0a] font-dogica text-white uppercase tracking-widest overflow-hidden">
       
+      {/* 🔥 CONTENEDOR DE NOTIFICACIONES STACKED */}
+      <div className="pointer-events-none fixed right-6 top-[100px] z-[100] flex flex-col gap-3">
+        {popups.map(popup => (
+          <ToastNotification 
+            key={popup.id} 
+            id={popup.id} 
+            title={popup.title}
+            text={popup.text} 
+            onRemove={removePopup} 
+          />
+        ))}
+      </div>
+
       <div className="w-full max-w-5xl px-4 z-10">
         
-        {/* BARRA SUPERIOR AL ESTILO LOBBY */}
+        {/* BARRA SUPERIOR */}
         <div className="mb-8 flex flex-col lg:flex-row w-full items-center justify-between border border-zinc-800 bg-[#111] p-5 shadow-2xl gap-6">
           <div className="flex items-center gap-6 px-4">
             <span className="text-[10px] text-zinc-400">COMBO PASS<br/><span className="text-white text-sm">LEVEL</span></span>
@@ -159,10 +216,8 @@ export default function BattlePass() {
           </button>
         </div>
 
-        {/* CUADRÍCULA DEL PASE (ARCADE STYLE) */}
+        {/* CUADRÍCULA DEL PASE */}
         <div className="relative flex w-full border border-zinc-800 bg-[#111] shadow-2xl">
-          
-          {/* ETIQUETAS LATERALES */}
           <div className="relative z-30 flex w-16 shrink-0 flex-col bg-[#0a0a0a] border-r border-zinc-800">
             <div className="h-12 w-full border-b border-zinc-800"></div>
             <div className="flex h-40 flex-1 items-center justify-center border-b border-zinc-800">
@@ -173,7 +228,6 @@ export default function BattlePass() {
             </div>
           </div>
 
-          {/* ÁREA SCROLLEABLE */}
           <div className="relative flex flex-1 overflow-hidden">
             {canScrollLeft && (
               <button onClick={() => scrollByAmount(-300)} className="absolute left-0 top-0 bottom-0 z-20 flex w-12 items-center justify-center bg-gradient-to-r from-[#111] to-transparent text-yellow-400 hover:text-white transition-colors">
@@ -199,12 +253,10 @@ export default function BattlePass() {
                   return (
                     <div key={currentLvl} className="flex w-32 flex-col border-r border-zinc-800 bg-[#0a0a0a]">
                       
-                      {/* HEADER DE NIVEL */}
                       <div className={`flex h-12 w-full items-center justify-center border-b border-zinc-800 ${isUnlocked ? 'bg-yellow-400/10 text-yellow-400' : 'bg-[#111] text-zinc-600'}`}>
                         <span className="text-[10px]">LVL {currentLvl}</span>
                       </div>
 
-                      {/* FILA FREE */}
                       <div className="flex h-40 flex-col items-center justify-center border-b border-zinc-800 p-3">
                         <div 
                           onClick={() => canClaimFree && handleClaim(currentLvl, rewardText)}
@@ -221,7 +273,6 @@ export default function BattlePass() {
                         </div>
                       </div>
 
-                      {/* FILA PREMIUM (Cerrada por ahora) */}
                       <div className="flex h-40 flex-col items-center justify-center p-3 bg-[#111]">
                         <div className={`flex h-full w-full flex-col border border-zinc-800 bg-[#0a0a0a] p-2 items-center justify-center text-center opacity-40`}>
                           <div className="absolute right-3 top-3 text-zinc-600">
@@ -242,7 +293,6 @@ export default function BattlePass() {
           </div>
         </div>
 
-        {/* CONTROLES DEV */}
         <div className="mt-12 flex justify-center">
           <button onClick={handleAddXp} className="border border-zinc-700 px-6 py-3 text-[10px] text-zinc-400 transition-colors hover:border-yellow-400 hover:text-yellow-400 hover:bg-yellow-400/10">
             [ DEV: SIMULAR +250 XP ]
