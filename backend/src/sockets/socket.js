@@ -3,24 +3,20 @@ const jwt = require("jsonwebtoken");
 function setupSocket(io) {
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
-    if (!token) return next(); // permite conexiones anónimas (ej. guests viendo el lobby)
-
+    if (!token) return next();
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       socket.user = decoded;
-    } catch (err) {
-      // token inválido: igual deja conectar como invitado, simplemente sin "room" de usuario
-    }
+    } catch (err) {}
     next();
   });
 
   io.on("connection", (socket) => {
     if (socket.user?.id) {
-      // Cada usuario tiene su propia "room" para recibir notificaciones dirigidas
       socket.join(`user:${socket.user.id}`);
-      console.log(`🔌 Usuario conectado: ${socket.user.username} (${socket.id})`);
-    } else {
-      console.log(`🔌 Invitado conectado (${socket.id})`);
+      socket.join(`lobby:${socket.user.id}`);
+      socket.currentLobby = socket.user.id; // Rastreamos en qué lobby está metido
+      console.log(`Usuario conectado: ${socket.user.username}`);
     }
 
     // Ejemplo: notificación de solicitud de amistad
@@ -33,20 +29,23 @@ function setupSocket(io) {
 
     //  Un jugador (P1) envía una invitación a un amigo
     socket.on("lobby:invite:send", ({ targetUserId }) => {
-      if (!socket.user) return; // Solo usuarios logueados pueden invitar
-
-      // Emitimos a la room del amigo usando tu prefijo "user:"
+      if (!socket.user) return;
       io.to(`user:${targetUserId}`).emit("lobby:invite:receive", {
         senderId: socket.user.id,
-        senderUsername: socket.user.username // Sacado de forma segura del JWT
+        senderUsername: socket.user.username
       });
     });
 
-    // El amigo (P2) responde a la invitación (Aceptar/Rechazar)
     socket.on("lobby:invite:respond", ({ senderId, accepted }) => {
       if (!socket.user) return;
 
-      // Le devolvemos la respuesta al creador del lobby (P1)
+      if (accepted) {
+        // 🔥 NUEVO: Si acepta, lo sacamos de su propio lobby y lo metemos al del líder (P1)
+        if (socket.currentLobby) socket.leave(`lobby:${socket.currentLobby}`);
+        socket.join(`lobby:${senderId}`);
+        socket.currentLobby = senderId;
+      }
+
       io.to(`user:${senderId}`).emit("lobby:invite:response", {
         targetId: socket.user.id,
         targetUsername: socket.user.username,
@@ -55,6 +54,14 @@ function setupSocket(io) {
     });
 
     socket.on("disconnect", () => {
+      if (socket.user && socket.currentLobby) {
+        // Le avisamos a todos los que sigan en esa sala que este usuario se voló
+        io.to(`lobby:${socket.currentLobby}`).emit("lobby:member_left", {
+          userId: socket.user.id,
+          username: socket.user.username,
+          isHost: socket.user.id === socket.currentLobby // ¿El que se fue era el líder?
+        });
+      }
       console.log(`❌ Desconectado: ${socket.id}`);
     });
   });

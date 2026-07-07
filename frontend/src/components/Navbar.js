@@ -17,16 +17,20 @@ export default function Navbar() {
 
   const [sessionSeconds, setSessionSeconds] = useState(0);
   const [notification, setNotification] = useState(null);
-
   const handleInviteToLobby = (friend) => {
-    if (socket) {
-      socket.emit("lobby:invite:send", {
-        targetUserId: friend.id
-      });
-      setNotification({ type: "success", message: `INVITACIÓN ENVIADA A ${friend.username}` });
-      setTimeout(() => setNotification(null), 3000);
-    }
-  };
+      // Verificar si el amigo ya está en un slot ocupado
+      if (slots.some(player => player?.id === friend.id)) {
+        setNotification({ type: "error", message: "EL USUARIO YA ESTÁ EN LA SALA" });
+        setTimeout(() => setNotification(null), 3000);
+        return; // Detenemos la ejecución aquí
+      }
+
+      if (socket) {
+        socket.emit("lobby:invite:send", { targetUserId: friend.id });
+        setNotification({ type: "success", message: `INVITACIÓN ENVIADA A ${friend.username}` });
+        setTimeout(() => setNotification(null), 3000);
+      }
+    };
 
   const handleRespondToInvite = (accepted) => {
     if (socket && incomingInvite) {
