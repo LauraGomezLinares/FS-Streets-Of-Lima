@@ -1,12 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useLobby } from "../context/LobbyContext";
 import faceSprite from "../assets/FaceSprite.png"; 
 import { motion, AnimatePresence } from "framer-motion";
-import { useLobby } from "../context/LobbyContext";
 
 export default function Navbar() {
-  const { user, token, setLoginModalOpen, logout, isProfileOpen, setIsProfileOpen, socket, incomingInvite, setIncomingInvite } = useAuth();
+  const { 
+    user, token, setLoginModalOpen, logout, isProfileOpen, setIsProfileOpen, 
+    socket, incomingInvite, setIncomingInvite
+  } = useAuth();
+  const { slots, setSlots } = useLobby();;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { setSlots } = useLobby();
   // Estados para el sistema de Amigos
