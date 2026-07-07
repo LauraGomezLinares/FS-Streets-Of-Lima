@@ -13,7 +13,8 @@ export function AuthProvider({ children }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const [loading, setLoading] = useState(false);
-
+  const [socketInstance, setSocketInstance] = useState(null);
+  const [incomingInvite, setIncomingInvite] = useState(null);
   const triggerToast = (message) => {
     setToastMessage(message);
     setTimeout(() => setToastMessage(null), 3000); 
@@ -25,8 +26,15 @@ export function AuthProvider({ children }) {
     if (!user || !user.id) return;
 
     // Conectamos con el backend pasando el token por seguridad
-    const socket = io(API_URL, {
-      auth: { token }
+    const socket = io(API_URL, { auth: { token } });
+    setSocketInstance(socket); // Guardamos la instancia para usarla en Navbar
+
+    socket.emit("join:room", user.id);
+
+    // 🔥 NUEVO: Escuchamos si nos llega una invitación
+    socket.on("lobby:invite:receive", (data) => {
+      // data contiene { senderId, senderUsername }
+      setIncomingInvite(data);
     });
 
     // Nos unimos a una sala única basada en el ID del usuario
@@ -152,7 +160,8 @@ export function AuthProvider({ children }) {
       user, token, loading, login, verifyOtp, register, logout, 
       isLoginModalOpen, setLoginModalOpen, 
       isProfileOpen, setIsProfileOpen,
-      toastMessage, triggerToast 
+      toastMessage, triggerToast,
+      socket: socketInstance, incomingInvite, setIncomingInvite 
     }}>
       {children}
     </AuthContext.Provider>

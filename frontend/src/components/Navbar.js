@@ -5,7 +5,10 @@ import faceSprite from "../assets/FaceSprite.png";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
-  const { user, token, setLoginModalOpen, logout, isProfileOpen, setIsProfileOpen } = useAuth();
+const { 
+  user, token, setLoginModalOpen, logout, isProfileOpen, setIsProfileOpen, 
+  socket, incomingInvite, setIncomingInvite
+} = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Estados para el sistema de Amigos
@@ -16,6 +19,34 @@ export default function Navbar() {
 
   const [sessionSeconds, setSessionSeconds] = useState(0);
   const [notification, setNotification] = useState(null);
+
+  const handleInviteToLobby = (friend) => {
+    if (socket) {
+      socket.emit("lobby:invite:send", {
+        targetUserId: friend.id
+      });
+      setNotification({ type: "success", message: `INVITACIÓN ENVIADA A ${friend.username}` });
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
+  const handleRespondToInvite = (accepted) => {
+  if (socket && incomingInvite) {
+    socket.emit("lobby:invite:respond", {
+      senderId: incomingInvite.senderId,
+      targetUsername: user.username,
+      accepted: accepted
+    });
+
+    if (accepted) {
+      // AQUI ES DONDE NOS UNIREMOS AL LOBBY COMO P2
+      console.log(`¡Uniendo al lobby de ${incomingInvite.senderUsername} como P2!`);
+    }
+
+    setIncomingInvite(null); // Cerramos el pop-up
+  }
+  };
+
   useEffect(() => {
     let interval = null;
     let secondsAccumulated = 0; // Guardamos registro local temporal
@@ -298,7 +329,12 @@ export default function Navbar() {
                           </div>
                           <span className="text-[10px] text-zinc-300 tracking-widest">{friendship.friend.username}</span>
                         </div>
-                        <button className="text-green-500 hover:text-green-300 hover:scale-125 transition-all text-xl leading-none mb-1">+</button>
+                        <button 
+                          onClick={() => handleInviteToLobby(friendship.friend)} 
+                          className="text-green-500 hover:text-green-300 hover:scale-125 transition-all text-xl leading-none mb-1"
+                        >
+                          +
+                        </button>
                       </div>
                     ))
                   )}
@@ -399,6 +435,34 @@ export default function Navbar() {
             <span className="text-white text-[10px] tracking-widest uppercase font-dogica mt-0.5">
               {notification.message}
             </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {incomingInvite && (
+          <motion.div 
+            initial={{ opacity: 0, y: -50 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-[90px] right-4 lg:right-10 z-[60] p-4 bg-[#111] border-2 border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.3)] flex flex-col items-center gap-3 w-[260px]"
+          >
+            <div className="text-white text-[10px] tracking-widest uppercase text-center font-dogica leading-relaxed">
+              <span className="text-yellow-400">{incomingInvite.senderUsername}</span> TE HA INVITADO A UN LOBBY
+            </div>
+            <div className="flex gap-4 mt-2 w-full">
+              <button 
+                onClick={() => handleRespondToInvite(true)}
+                className="flex-1 bg-green-500/20 text-green-400 border border-green-500/50 hover:bg-green-500 hover:text-black py-2 text-[10px] transition-all"
+              >
+                ACEPTAR
+              </button>
+              <button 
+                onClick={() => handleRespondToInvite(false)}
+                className="flex-1 bg-red-500/20 text-red-500 border border-red-500/50 hover:bg-red-500 hover:text-black py-2 text-[10px] transition-all"
+              >
+                RECHAZAR
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
