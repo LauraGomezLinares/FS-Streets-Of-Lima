@@ -3,14 +3,12 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import faceSprite from "../assets/FaceSprite.png"; 
 import { motion, AnimatePresence } from "framer-motion";
+import { useLobby } from "../context/LobbyContext";
 
 export default function Navbar() {
-const { 
-  user, token, setLoginModalOpen, logout, isProfileOpen, setIsProfileOpen, 
-  socket, incomingInvite, setIncomingInvite
-} = useAuth();
+  const { user, token, setLoginModalOpen, logout, isProfileOpen, setIsProfileOpen, socket, incomingInvite, setIncomingInvite } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
+  const { setSlots } = useLobby();
   // Estados para el sistema de Amigos
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -31,20 +29,22 @@ const {
   };
 
   const handleRespondToInvite = (accepted) => {
-  if (socket && incomingInvite) {
-    socket.emit("lobby:invite:respond", {
-      senderId: incomingInvite.senderId,
-      targetUsername: user.username,
-      accepted: accepted
-    });
+    if (socket && incomingInvite) {
+      socket.emit("lobby:invite:respond", {
+        senderId: incomingInvite.senderId,
+        accepted: accepted
+      });
 
-    if (accepted) {
-      // AQUI ES DONDE NOS UNIREMOS AL LOBBY COMO P2
-      console.log(`¡Uniendo al lobby de ${incomingInvite.senderUsername} como P2!`);
+      if (accepted) {
+        // TÚ te unes a su lobby. Él es el líder (P1), tú ocupas P2.
+        setSlots([
+          { id: incomingInvite.senderId, username: incomingInvite.senderUsername, isHost: true },
+          { id: user.id, username: user.username, isHost: false },
+          null, null
+        ]);
+      }
+      setIncomingInvite(null); // Ocultar el Pop-up
     }
-
-    setIncomingInvite(null); // Cerramos el pop-up
-  }
   };
 
   useEffect(() => {
@@ -110,32 +110,25 @@ const {
   };
 
   const fetchPendingRequests = useCallback(async () => {
+    if (!token) return; 
     try {
-      const res = await fetch(`${API_URL}/friends/requests`, {
-        headers: getAuthHeaders(),
+      const res = await fetch(`${API_URL}/friends/requests`, { 
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
       });
-      if (res.ok) {
-        const data = await res.json();
-        setPendingRequests(data);
-      }
-    } catch (error) {
-      console.error("Error obteniendo solicitudes:", error);
-    }
-  }, [API_URL]);
+      if (res.status === 401 || res.status === 403) return logout(); 
+      if (res.ok) setPendingRequests(await res.json());
+    } catch (error) { console.error(error); }
+  }, [API_URL, token, logout]); 
 
   const fetchFriends = useCallback(async () => {
+    if (!token) return; 
     try {
-      const res = await fetch(`${API_URL}/friends`, {
-        headers: getAuthHeaders(),
+      const res = await fetch(`${API_URL}/friends`, { 
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
       });
-      if (res.ok) {
-        const data = await res.json();
-        setFriendsList(data);
-      }
-    } catch (error) {
-      console.error("Error obteniendo amigos:", error);
-    }
-  }, [API_URL]);
+      if (res.ok) setFriendsList(await res.json());
+    } catch (error) { console.error(error); }
+  }, [API_URL, token]);
 
   // Cargar datos al abrir el menú de perfil
   useEffect(() => {

@@ -29,9 +29,6 @@ export function AuthProvider({ children }) {
     const socket = io(API_URL, { auth: { token } });
     setSocketInstance(socket); // Guardamos la instancia para usarla en Navbar
 
-    socket.emit("join:room", user.id);
-
-    // 🔥 NUEVO: Escuchamos si nos llega una invitación
     socket.on("lobby:invite:receive", (data) => {
       // data contiene { senderId, senderUsername }
       setIncomingInvite(data);
