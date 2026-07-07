@@ -6,23 +6,29 @@ export default class MainScene extends Phaser.Scene {
   }
 
   create() {
-    // Extraemos quiénes están en el Lobby desde el registry
     const slots = this.registry.get('slots');
-    
-    // Lista para guardar los cuerpos de los jugadores
-    this.players = [];
+    const socket = this.registry.get('socket');
+    const myUserId = this.registry.get('myId'); 
 
-    // Colores temporales de prueba para diferenciar a P1, P2, P3 y P4
+    this.players = [];     // Para la cámara
+    this.remotePlayers = {}; // Diccionario para actualizar rápido a los amigos
+    this.myPlayer = null;  // Referencia a MI personaje local
+
     const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00];
 
-    // Hacer aparecer solo a los jugadores que existan en el Lobby
     slots.forEach((playerData, index) => {
       if (playerData) {
-        // Luego cambiaremos esto por el sprite real del jugador, pero por ahora es un rectángulo de color
         const playerSprite = this.add.rectangle(200 + (index * 100), 400, 60, 100, colors[index]);
         this.physics.add.existing(playerSprite);
         
-        // Etiqueta temporal con el nombre flotando arriba
+        // Comparamos si este slot soy YO aka P1
+        if (playerData.id === myUserId) {
+          this.myPlayer = playerSprite;
+        } else {
+          // Si es un amigo, lo guardamos en un diccionario usando su ID
+          this.remotePlayers[playerData.id] = playerSprite;
+        }
+
         this.add.text(playerSprite.x - 30, playerSprite.y - 70, playerData.username, { 
             fontFamily: 'sans-serif', fontSize: '14px', fill: '#fff' 
         });
@@ -31,32 +37,72 @@ export default class MainScene extends Phaser.Scene {
       }
     });
 
-    // Midpoint Camera
-    // Creamos un objetivo invisible de 1x1 píxel
+    // SISTEMA DE ENTRADA (Teclado)
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.wasd = this.input.keyboard.addKeys({
+        up: Phaser.Input.Keyboard.KeyCodes.W,
+        down: Phaser.Input.Keyboard.KeyCodes.S,
+        left: Phaser.Input.Keyboard.KeyCodes.A,
+        right: Phaser.Input.Keyboard.KeyCodes.D
+    });
+
+    // ESCUCHAR AL SERVIDOR: Cuando un amigo se mueve
+    socket.on("game:player_moved", (data) => {
+        // data trae: { userId, x, y }
+        const remoteSprite = this.remotePlayers[data.userId];
+        if (remoteSprite) {
+            // Actualizamos la posición del amigo en nuestra pantalla
+            remoteSprite.x = data.x;
+            remoteSprite.y = data.y;
+        }
+    });
+
+    // CÁMARA MIDPOINT
     this.cameraTarget = this.add.zone(0, 0, 1, 1);
-    
-    // Le decimos a la cámara que siga al punto invisible con un poco de suavidad (0.1)
     this.cameras.main.startFollow(this.cameraTarget, true, 0.1, 0.1);
-    
-    // Establecemos el límite total de este nivel (Ej: 3000 píxeles de largo)
     this.cameras.main.setBounds(0, 0, 3000, 720);
   }
 
   update() {
-    // Si hay jugadores en la sala, calculamos su punto medio constantemente
+    const socket = this.registry.get('socket');
+    const myUserId = this.registry.get('myId');
+
+    // MOVER PERSONAJE
+    if (this.myPlayer) {
+      const speed = 5;
+      let moved = false;
+
+      if (this.cursors.left.isDown || this.wasd.left.isDown) {
+        this.myPlayer.x -= speed;
+        moved = true;
+      } else if (this.cursors.right.isDown || this.wasd.right.isDown) {
+        this.myPlayer.x += speed;
+        moved = true;
+      }
+
+      if (this.cursors.up.isDown || this.wasd.up.isDown) {
+        this.myPlayer.y -= speed;
+        moved = true;
+      } else if (this.cursors.down.isDown || this.wasd.down.isDown) {
+        this.myPlayer.y += speed;
+        moved = true;
+      }
+
+      // Avisar si realmente nos movimos para no saturar la red
+      if (moved) {
+          socket.emit("game:move", { 
+              userId: myUserId, 
+              x: this.myPlayer.x, 
+              y: this.myPlayer.y 
+          });
+      }
+    }
+
+    // ACTUALIZAR CÁMARA COMPARTIDA
     if (this.players.length > 0) {
       let sumX = 0;
-
-      this.players.forEach(player => {
-        sumX += player.x;
-      });
-
-      const midX = sumX / this.players.length;
-
-      // Desplazamos el punto invisible hacia ese centro.
-      this.cameraTarget.x = midX;
-      
-      // Mantenemos la Y bloqueada en el centro (360) para que la cámara no se vuelva loca subiendo y bajando cuando los jugadores salten.
+      this.players.forEach(player => { sumX += player.x; });
+      this.cameraTarget.x = sumX / this.players.length;
       this.cameraTarget.y = 360; 
     }
   }

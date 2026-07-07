@@ -53,6 +53,11 @@ function setupSocket(io) {
       });
     });
 
+    socket.on("game:move", (data) => {
+        // Le mandamos el movimiento a todos en la sala EXCEPTO al que lo envió (broadcast)
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:player_moved", data);
+    });
+
     socket.on("disconnect", () => {
       if (socket.user && socket.currentLobby) {
         // Le avisamos a todos los que sigan en esa sala que este usuario se voló

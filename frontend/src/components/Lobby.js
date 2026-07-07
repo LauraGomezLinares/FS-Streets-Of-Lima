@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLobby } from '../context/LobbyContext'; 
+import GameWindow from '../game/GameWindow';
 import logoStreet from '../assets/Logo_StreetsOfLima.png';
 import faceSprite from '../assets/FaceSprite.png';
 import idleGif from '../assets/PlaceholderPersonajeIdle.gif';
@@ -10,6 +11,8 @@ export default function Lobby() {
     const { slots } = useLobby(); 
     const [isSkillTreeOpen, setIsSkillTreeOpen] = useState(false);
 
+    const [isPlaying, setIsPlaying] = useState(false);
+
     // Funciones bloqueadas para invitados
     const handleProtectedAction = (action) => {
         if (!user) {
@@ -18,7 +21,24 @@ export default function Lobby() {
         }
         if (action === "skills") setIsSkillTreeOpen(!isSkillTreeOpen);
         if (action === "invite") setIsProfileOpen(true); 
+
+        if (action === "play") setIsPlaying(true);
     };
+
+    if (isPlaying) {
+        return (
+            <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center">
+                {/* Botón para salir del juego y volver al lobby */}
+                <button 
+                    onClick={() => setIsPlaying(false)}
+                    className="absolute top-6 left-6 text-red-500 font-dogica border border-red-500 bg-black/50 px-4 py-2 hover:bg-red-500 hover:text-black z-50 transition-all text-xs"
+                >
+                    &lt; LEAVE GAME
+                </button>
+                <GameWindow />
+            </div>
+        );
+    }
 
     return (
         <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-4 gap-8 mb-16">
@@ -98,8 +118,9 @@ export default function Lobby() {
                     })}
                 </div>
 
-                <button className="bg-yellow-400 hover:bg-yellow-300 text-black px-12 py-4 text-xl tracking-[0.2em] rounded transition-all active:scale-95 shadow-[0_0_20px_rgba(255,220,50,0.4)]">
-                    PLAY
+                <button onClick={() => handleProtectedAction("play")} 
+                className="bg-yellow-400 hover:bg-yellow-300 text-black px-12 py-4 text-xl tracking-[0.2em] rounded transition-all active:scale-95 shadow-[0_0_20px_rgba(255,220,50,0.4)]">
+                PLAY
                 </button>
             </div>
 
