@@ -10,9 +10,8 @@ export default function Navbar() {
     user, token, setLoginModalOpen, logout, isProfileOpen, setIsProfileOpen, 
     socket, incomingInvite, setIncomingInvite
   } = useAuth();
-  const { slots, setSlots } = useLobby();;
+  const { slots, setSlots } = useLobby();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { setSlots } = useLobby();
   // Estados para el sistema de Amigos
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
