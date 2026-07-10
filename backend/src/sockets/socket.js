@@ -81,6 +81,21 @@ function setupSocket(io) {
         socket.to(`lobby:${socket.currentLobby}`).emit("game:player_attacked", data);
     });
 
+    // El P1 avisa que la cámara debe bloquearse
+    socket.on("game:trigger_ambush", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:ambush_triggered", data);
+    });
+
+    // El P1 genera un enemigo y lo comparte
+    socket.on("game:spawn_enemy", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:enemy_spawned", data);
+    });
+
+    // Alguien golpeó a un enemigo (todos deben bajarle la vida y pintarlo rojo para simular el daño recibido)
+    socket.on("game:enemy_hit", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:enemy_took_damage", data);
+    });
+
     socket.on("disconnect", () => {
       if (socket.user && socket.currentLobby) {
         // Le avisamos a todos los que sigan en esa sala que este usuario se voló
