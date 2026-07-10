@@ -72,8 +72,13 @@ function setupSocket(io) {
     });
 
     socket.on("game:move", (data) => {
-        // Le mandamos el movimiento a todos en la sala EXCEPTO al que lo envió (broadcast)
+        // Le mandamos el movimiento a todos en la sala EXCEPTO al que lo envió
         socket.to(`lobby:${socket.currentLobby}`).emit("game:player_moved", data);
+    });
+
+    // Reenviar animaciones de ataque a la sala
+    socket.on("game:attack", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:player_attacked", data);
     });
 
     socket.on("disconnect", () => {
@@ -87,6 +92,7 @@ function setupSocket(io) {
       }
       console.log(`❌ Desconectado: ${socket.id}`);
     });
+    
   });
 }
 

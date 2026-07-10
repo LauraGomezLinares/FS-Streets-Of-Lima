@@ -8,7 +8,7 @@ import UIScene from "./scenes/UIScene";
 export default function GameWindow() {
   const gameRef = useRef(null);
   const { slots } = useLobby(); 
-  const { socket, user } = useAuth(); 
+  const { socket, user } = useAuth();
 
   useEffect(() => {
     const config = {
@@ -25,7 +25,7 @@ export default function GameWindow() {
           debug: true 
         }
       },
-      scene: [MainScene, UIScene]
+      scene: [MainScene, UIScene] 
     };
 
     const game = new Phaser.Game(config);
@@ -33,7 +33,7 @@ export default function GameWindow() {
     game.registry.set('slots', slots);
     game.registry.set('socket', socket);
     
-    // 🔥 Añadimos validación por seguridad
+    // Añadimos validación por seguridad
     if (user && user.id) {
         game.registry.set('myId', user.id); 
     }
