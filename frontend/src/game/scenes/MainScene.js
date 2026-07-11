@@ -23,7 +23,6 @@ export default class MainScene extends Phaser.Scene {
     g.generateTexture('atk_k', 60, 100);
     g.clear();
 
-    // Textura del Enemigo
     g.fillStyle(0x888888, 1);
     g.fillCircle(30, 30, 30);
     g.generateTexture('enemy', 60, 60);
@@ -49,7 +48,8 @@ export default class MainScene extends Phaser.Scene {
 
     slots.forEach((playerData, index) => {
       if (playerData) {
-        const playerSprite = this.add.sprite(200 + (index * 100), 450, 'idle');
+        // Hacemos que nazcan un poco más arriba (Y: 300)
+        const playerSprite = this.add.sprite(200 + (index * 100), 300, 'idle');
         playerSprite.setTint(colors[index]); 
         this.physics.add.existing(playerSprite);
         
@@ -67,7 +67,6 @@ export default class MainScene extends Phaser.Scene {
       }
     });
 
-    // Lanzar la Interfaz de Barras de Vida en paralelo
     this.scene.launch("UIScene", { slots: slots });
 
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -77,7 +76,6 @@ export default class MainScene extends Phaser.Scene {
         j: Phaser.Input.Keyboard.KeyCodes.J, k: Phaser.Input.Keyboard.KeyCodes.K
     });
 
-    // sockets
     socket.on("game:player_moved", (data) => {
         const remoteSprite = this.remotePlayers[data.userId];
         if (remoteSprite) { remoteSprite.x = data.x; remoteSprite.y = data.y; }
@@ -92,7 +90,6 @@ export default class MainScene extends Phaser.Scene {
         this.lockCamera(data.lockX);
     });
 
-    // 🔥 Recibir enemigo y sus "Flancos" calculados por el Host
     socket.on("game:enemy_spawned", (data) => {
         this.createEnemy(data.id, data.x, data.y, data.offsetX, data.offsetY);
     });
@@ -105,9 +102,7 @@ export default class MainScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.cameraTarget, true, 0.1, 0.1);
     this.cameras.main.setBounds(0, 0, 3000, 720);
   }
-
-  // Funciones de emboscada y enemigos
-
+  
   lockCamera(lockX) {
       this.isLocked = true;
       this.cameras.main.setBounds(lockX, 0, 1280, 720);
@@ -126,13 +121,13 @@ export default class MainScene extends Phaser.Scene {
           callback: () => {
               const spawnLeft = Math.random() > 0.5;
               const spawnX = spawnLeft ? lockX - 80 : lockX + 1280 + 80;
-              const spawnY = Phaser.Math.Between(350, 650);
+              
+              // 🔥 NUEVO: Los enemigos nacen en todo el rango del suelo (150 a 680)
+              const spawnY = Phaser.Math.Between(150, 680);
               const enemyId = 'enemy_' + Date.now() + Math.random();
 
-              // Le asignamos a qué lado del jugador va a pararse este enemigo
-              // Entre 60 y 100 píxeles a la izquierda o a la derecha
               const offsetX = (Math.random() * 40 + 60) * (spawnLeft ? -1 : 1); 
-              const offsetY = (Math.random() * 60) - 30; // Un poco arriba o abajo para que no formen línea recta
+              const offsetY = (Math.random() * 60) - 30; 
 
               this.createEnemy(enemyId, spawnX, spawnY, offsetX, offsetY);
               
@@ -149,13 +144,15 @@ export default class MainScene extends Phaser.Scene {
       enemy.hp = 8; 
       enemy.activeStatus = true;
       
-      // MÁQUINA DE ESTADOS Y VELOCIDAD
-      enemy.speed = 1.0; // Movimiento más lento
-      enemy.state = 'CHASE'; // CHASE, WANDER, HURT
+      enemy.speed = 1.0; 
       enemy.offsetX = offsetX;
       enemy.offsetY = offsetY;
+      
+      // 🔥 NUEVO: Reloj interno para IA
+      enemy.state = 'CHASE'; 
+      enemy.stateTimer = this.time.now + Phaser.Math.Between(3000, 5000); // 3 a 5 segs iniciales
+      enemy.wanderTarget = null;
       enemy.hurtTimer = 0;
-      enemy.wanderAngle = Math.random() * Math.PI * 2; // Inicia en un ángulo aleatorio
 
       this.enemies.push(enemy);
   }
@@ -166,11 +163,9 @@ export default class MainScene extends Phaser.Scene {
 
       enemy.hp -= 1;
       
-      // Estado herido y aturdido
       enemy.state = 'HURT';
-      enemy.hurtTimer = this.time.now + 600; // 600 milisegundos de aturdimiento
+      enemy.hurtTimer = this.time.now + 600; 
       
-      // Retroceso sutil para dar impacto al golpe
       enemy.x += (enemy.offsetX > 0 ? 15 : -15); 
 
       enemy.setTint(0xff0000);
@@ -187,7 +182,6 @@ export default class MainScene extends Phaser.Scene {
       }
   }
 
-  // BUCLE
   update() {
     const socket = this.registry.get('socket');
     const myUserId = this.registry.get('myId');
@@ -211,7 +205,6 @@ export default class MainScene extends Phaser.Scene {
           socket.emit("game:attack", { userId: myUserId, texture: textureName });
 
           this.enemies.forEach(enemy => {
-              // Aumentamos el rango a 100px para que los alcances mientras merodean a los lados
               if (enemy.activeStatus && Phaser.Math.Distance.Between(this.myPlayer.x, this.myPlayer.y, enemy.x, enemy.y) < 100) {
                   this.damageEnemy(enemy.id); 
                   socket.emit("game:enemy_hit", { enemyId: enemy.id }); 
@@ -236,10 +229,17 @@ export default class MainScene extends Phaser.Scene {
         if (this.cursors.up.isDown || this.wasd.up.isDown) { this.myPlayer.y -= speed; moved = true; } 
         else if (this.cursors.down.isDown || this.wasd.down.isDown) { this.myPlayer.y += speed; moved = true; }
 
+        // LIMITES DE MOVIMIENTO DEL JUGADOR
+        
+        // El Eje Y (Arriba y Abajo) está SIEMPRE bloqueado, dejando espacio a la interfaz arriba
+        this.myPlayer.y = Phaser.Math.Clamp(this.myPlayer.y, 150, 680); 
+
+        // El Eje X (Izquierda y Derecha) se adapta dependiendo de si hay emboscada
         if (this.isLocked) {
             const camX = this.cameras.main.scrollX;
             this.myPlayer.x = Phaser.Math.Clamp(this.myPlayer.x, camX + 30, camX + 1250);
-            this.myPlayer.y = Phaser.Math.Clamp(this.myPlayer.y, 350, 680); 
+        } else {
+            this.myPlayer.x = Phaser.Math.Clamp(this.myPlayer.x, 30, 2970); // Todo el nivel
         }
 
         if (moved) {
@@ -255,16 +255,32 @@ export default class MainScene extends Phaser.Scene {
       this.cameraTarget.y = 360; 
     }
 
-    // IA ENEMIGOS
+    // IA Enemigos
+    const camX = this.cameras.main.scrollX;
+
     this.enemies.forEach(enemy => {
         if (!enemy.activeStatus) return;
 
-        // ESTADO: HERIDO Y ATURDIDO
+        // HERIDO Y ATURDIDO
         if (enemy.state === 'HURT') {
             if (this.time.now > enemy.hurtTimer) {
-                enemy.state = 'CHASE'; // Recupera el sentido
+                // Al recuperarse, vuelve directo a perseguir para contraatacar
+                enemy.state = 'CHASE'; 
+                enemy.stateTimer = this.time.now + 4000; 
             }
-            return; // No camina mientras está aturdido
+            return; 
+        }
+
+        // RELOJ DE CAMBIO DE ESTADOS
+        if (this.time.now > enemy.stateTimer) {
+            if (enemy.state === 'CHASE') {
+                enemy.state = 'WANDER';
+                enemy.stateTimer = this.time.now + Phaser.Math.Between(2000, 4500); // Merodea entre 2 y 4.5 segs
+                enemy.wanderTarget = null; // Fuerza a escoger un nuevo punto de merodeo
+            } else if (enemy.state === 'WANDER') {
+                enemy.state = 'CHASE';
+                enemy.stateTimer = this.time.now + Phaser.Math.Between(3000, 6000); // Persigue entre 3 y 6 segs
+            }
         }
 
         let closestPlayer = null;
@@ -279,26 +295,41 @@ export default class MainScene extends Phaser.Scene {
         });
 
         if (closestPlayer) {
-            // El objetivo no es el centro del jugador, sino su "Flanco"
-            const targetX = closestPlayer.x + enemy.offsetX;
-            const targetY = closestPlayer.y + enemy.offsetY;
+            
+            // PERSEGUIR
+            if (enemy.state === 'CHASE') {
+                const targetX = closestPlayer.x + enemy.offsetX;
+                const targetY = closestPlayer.y + enemy.offsetY;
 
-            const distToTarget = Phaser.Math.Distance.Between(enemy.x, enemy.y, targetX, targetY);
-
-            // ESTADO: PERSEGUIR HASTA POSICIÓN
-            if (distToTarget > 40) {
-                enemy.state = 'CHASE';
-                const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, targetX, targetY);
-                enemy.x += Math.cos(angle) * enemy.speed;
-                enemy.y += Math.sin(angle) * enemy.speed;
+                // Si no ha llegado a su flanco, camina hacia él
+                if (Phaser.Math.Distance.Between(enemy.x, enemy.y, targetX, targetY) > 15) {
+                    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, targetX, targetY);
+                    enemy.x += Math.cos(angle) * enemy.speed;
+                    enemy.y += Math.sin(angle) * enemy.speed;
+                }
             } 
-            // ESTADO: MERODEAR ALREDEDOR
-            else {
-                enemy.state = 'WANDER';
-                enemy.wanderAngle += 0.02; // Gira lentamente
-                // Simula que caminan dando pequeñas vueltas mientras esperan su turno
-                enemy.x += Math.cos(enemy.wanderAngle) * (enemy.speed * 0.4);
-                enemy.y += Math.sin(enemy.wanderAngle) * (enemy.speed * 0.4);
+            
+            // MERODEAR ALEATORIAMENTE POR LA PANTALLA
+            else if (enemy.state === 'WANDER') {
+                
+                // Si no tiene a dónde ir, escoge un punto al azar en la pantalla visible
+                if (!enemy.wanderTarget) {
+                    enemy.wanderTarget = {
+                        x: Phaser.Math.Between(camX + 50, camX + 1230),
+                        y: Phaser.Math.Between(150, 680) // Mismos límites de los jugadores
+                    };
+                }
+
+                const distToWander = Phaser.Math.Distance.Between(enemy.x, enemy.y, enemy.wanderTarget.x, enemy.wanderTarget.y);
+                
+                // Si ya llegó a su punto falso, lo borra para que el próximo frame busque uno nuevo
+                if (distToWander < 10) {
+                    enemy.wanderTarget = null;
+                } else {
+                    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, enemy.wanderTarget.x, enemy.wanderTarget.y);
+                    enemy.x += Math.cos(angle) * (enemy.speed * 0.6); // Merodean un poco más lento
+                    enemy.y += Math.sin(angle) * (enemy.speed * 0.6);
+                }
             }
         }
     });
