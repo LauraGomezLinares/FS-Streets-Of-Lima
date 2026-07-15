@@ -244,4 +244,4 @@ async function checkRole(req, res) {
   }
 }
 
-module.exports = { register, login, verifyOtp, resendOtp, me, savePlaytime };
+module.exports = { register, login, verifyOtp, resendOtp, me, savePlaytime, checkRole };
