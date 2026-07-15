@@ -227,4 +227,21 @@ async function me(req, res) {
   }
 }
 
+async function checkRole(req, res) {
+  try {
+    // Buscamos al usuario en la base de datos usando el ID de su sesión
+    const userDb = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { role: true } // Solo traemos la columna 'role' para que sea súper rápido
+    });
+
+    if (!userDb) return res.status(404).json({ error: "Usuario no encontrado." });
+
+    res.json({ role: userDb.role });
+  } catch (error) {
+    console.error("Error consultando el rol:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+}
+
 module.exports = { register, login, verifyOtp, resendOtp, me, savePlaytime };

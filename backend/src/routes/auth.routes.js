@@ -13,8 +13,8 @@ router.post("/verify-otp", authController.verifyOtp);
 router.post("/resend-otp", authController.resendOtp);
 
 // Ruta Protegida (GET)
-// Al haber usado las llaves arriba, 'authMiddleware' ahora es una función válida y Express no fallará.
 router.get("/me", authMiddleware, authController.me);
 router.post("/save-playtime", authMiddleware, authController.savePlaytime);
+router.get("/role", authMiddleware.verifyToken, authController.checkRole);
 
 module.exports = router;

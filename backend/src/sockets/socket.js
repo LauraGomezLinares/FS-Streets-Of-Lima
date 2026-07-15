@@ -96,6 +96,16 @@ function setupSocket(io) {
         socket.to(`lobby:${socket.currentLobby}`).emit("game:enemy_took_damage", data);
     });
 
+    // Un enemigo realiza la animación de ataque
+    socket.on("game:enemy_attack", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:enemy_attacked", data);
+    });
+
+    // Un jugador recibió daño de un enemigo
+    socket.on("game:player_hit", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:player_took_damage", data);
+    });
+
     socket.on("disconnect", () => {
       if (socket.user && socket.currentLobby) {
         // Le avisamos a todos los que sigan en esa sala que este usuario se voló

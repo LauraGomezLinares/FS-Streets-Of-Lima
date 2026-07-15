@@ -6,69 +6,64 @@ export default class UIScene extends Phaser.Scene {
   }
 
   create(data) {
-    // Recibimos los slots (jugadores) desde la MainScene
     const slots = data.slots;
-    
-    // Diccionario para guardar las barras y poder actualizarlas luego al recibir daño
     this.playerBars = {};
 
     slots.forEach((player, index) => {
       if (player) {
-        // Espaciamos cada UI horizontalmente
-        const baseX = 30 + (index * 250);
+        const baseX = 30 + (index * 260);
         const baseY = 20;
 
-        // DIBUJAR LA CAJA DEL AVATAR
+        // DIBUJAR LA CAJA DEL AVATAR (Arcade Pixel Style)
         const avatarGraphics = this.add.graphics();
-        avatarGraphics.lineStyle(6, 0x000000, 1); // Borde negro grueso (6px)
-        avatarGraphics.fillStyle(0xffffff, 1);   // Fondo blanco
-        avatarGraphics.fillRoundedRect(baseX, baseY, 60, 60, 12);
-        avatarGraphics.strokeRoundedRect(baseX, baseY, 60, 60, 12);
+        avatarGraphics.fillStyle(0x0a0a0a, 1); // Fondo muy oscuro
+        avatarGraphics.fillRect(baseX, baseY, 60, 60);
+        avatarGraphics.lineStyle(4, 0x3f3f46, 1); // Borde zinc-700
+        avatarGraphics.strokeRect(baseX, baseY, 60, 60);
 
-        // EL NOMBRE DEL JUGADOR
-        this.add.text(baseX + 80, baseY, player.username, {
-          fontFamily: 'sans-serif', // poner fuente después
-          fontSize: '18px',
-          fontStyle: 'italic',
-          color: '#000000',
-          stroke: '#ffffff',
-          strokeThickness: 2
+        // TEXTO DEL NOMBRE
+        this.add.text(baseX + 75, baseY, player.username.toUpperCase(), {
+          fontFamily: '"dogica", monospace',
+          fontSize: '10px',
+          fill: '#facc15', // yellow-400
+          resolution: 2 // Para que el texto pequeño no se vea borroso
         });
 
-        // BARRA DE VIDA (Verde Limón)
-        // Fondo oscuro de la barra
+        // BARRA DE VIDA 
         const hpBg = this.add.graphics();
-        hpBg.fillStyle(0x333333, 1);
-        hpBg.fillRoundedRect(baseX + 80, baseY + 28, 140, 12, 6);
+        hpBg.fillStyle(0x27272a, 1); // zinc-800
+        hpBg.fillRect(baseX + 75, baseY + 20, 140, 12);
         
-        // Relleno Verde
         const hpFill = this.add.graphics();
-        hpFill.fillStyle(0xbedb39, 1); // Código de color verde de tu imagen
-        hpFill.fillRoundedRect(baseX + 80, baseY + 28, 140, 12, 6);
+        hpFill.fillStyle(0x22c55e, 1); // green-500
+        hpFill.fillRect(baseX + 75, baseY + 20, 140, 12);
 
-        // BARRA DE ENERGÍA (Celeste)
-        // Fondo oscuro
+        // BARRA DE ENERGÍA/MANÁ
         const mpBg = this.add.graphics();
-        mpBg.fillStyle(0x333333, 1);
-        mpBg.fillRoundedRect(baseX + 80, baseY + 48, 140, 10, 5);
+        mpBg.fillStyle(0x27272a, 1);
+        mpBg.fillRect(baseX + 75, baseY + 38, 140, 10);
 
-        // Relleno Celeste
         const mpFill = this.add.graphics();
-        mpFill.fillStyle(0x8ee0f0, 1); // Código de color celeste de tu imagen
-        mpFill.fillRoundedRect(baseX + 80, baseY + 48, 140, 10, 5);
+        mpFill.fillStyle(0x38bdf8, 1); // sky-400
+        mpFill.fillRect(baseX + 75, baseY + 38, 140, 10);
 
-        // Guardamos las referencias por si necesitamos bajar la vida luego
-        this.playerBars[player.id] = { hpFill, mpFill };
+        // Guardamos las referencias para actualizarlas cuando recibas daño
+        this.playerBars[player.id] = { hpFill, baseX, baseY };
       }
     });
 
-    // ESCUCHAR DAÑO
-    // Cuando la MainScene grite "daño", la interfaz lo escuchará y achicará la barra
+    // ESCUCHAR EL EVENTO DE DAÑO DESDE LA MAINSCENE
     const mainScene = this.scene.get("MainScene");
     mainScene.events.on("update_hp", ({ userId, hpPercent }) => {
         if (this.playerBars[userId]) {
-            // Escalamos el gráfico en el eje X (de 0 a 1)
-            this.playerBars[userId].hpFill.scaleX = hpPercent;
+            const { hpFill, baseX, baseY } = this.playerBars[userId];
+            
+            // Redibujamos la barra con el nuevo ancho (evitando que baje de 0)
+            const newWidth = Math.max(0, 140 * hpPercent);
+            
+            hpFill.clear();
+            hpFill.fillStyle(0x22c55e, 1);
+            hpFill.fillRect(baseX + 75, baseY + 20, newWidth, 12);
         }
     });
   }

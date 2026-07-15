@@ -12,7 +12,7 @@ export default function Navbar() {
   } = useAuth();
   const { slots, setSlots } = useLobby();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  // Estados para el sistema de Amigos
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
@@ -20,12 +20,53 @@ export default function Navbar() {
 
   const [sessionSeconds, setSessionSeconds] = useState(0);
   const [notification, setNotification] = useState(null);
+
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const userLevel = user?.battlePass?.level || 1;
+
+  const baseTotalSeconds = user?.totalPlaySeconds || 0; 
+  const totalCombinedSeconds = baseTotalSeconds + sessionSeconds;
+  const displayHours = Math.floor(totalCombinedSeconds / 3600);
+
+  const API_URL = "https://fs-streets-of-lima-backend.onrender.com";
+
+
+  //  Verificamos si el usuario actual es admin 
+  const getAuthHeaders = useCallback(() => {
+    return {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    };
+  }, [token]);
+
+  // Consultar a la base de datos el rol en tiempo real
+  useEffect(() => {
+    if (user && token) {
+      fetch(`${API_URL}/auth/role`, {
+        headers: getAuthHeaders()
+      })
+      .then(res => res.json())
+      .then(data => {
+        // Si en la tabla de Neon dice 'ADMIN', activamos la interfaz especial
+        if (data.role === 'ADMIN') {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+      })
+      .catch(err => console.error("Error verificando rol:", err));
+    } else {
+      setIsAdmin(false); // Si no hay usuario, definitivamente no es admin
+    }
+  }, [user, token, getAuthHeaders, API_URL]);
+
+
   const handleInviteToLobby = (friend) => {
-      // Verificar si el amigo ya está en un slot ocupado
       if (slots.some(player => player?.id === friend.id)) {
         setNotification({ type: "error", message: "EL USUARIO YA ESTÁ EN LA SALA" });
         setTimeout(() => setNotification(null), 3000);
-        return; // Detenemos la ejecución aquí
+        return; 
       }
 
       if (socket) {
@@ -43,20 +84,19 @@ export default function Navbar() {
       });
 
       if (accepted) {
-        // TÚ te unes a su lobby. Él es el líder (P1), tú ocupas P2.
         setSlots([
           { id: incomingInvite.senderId, username: incomingInvite.senderUsername, isHost: true },
           { id: user.id, username: user.username, isHost: false },
           null, null
         ]);
       }
-      setIncomingInvite(null); // Ocultar el Pop-up
+      setIncomingInvite(null); 
     }
   };
 
   useEffect(() => {
     let interval = null;
-    let secondsAccumulated = 0; // Guardamos registro local temporal
+    let secondsAccumulated = 0; 
     
     if (user) {
       interval = setInterval(() => {
@@ -64,7 +104,6 @@ export default function Navbar() {
           const newSeconds = prev + 1;
           secondsAccumulated++;
 
-          // Guardado de seguridad cada 5 minutos
           if (secondsAccumulated >= 300) {
             fetch(`${API_URL}/auth/save-playtime`, {
               method: "POST",
@@ -72,7 +111,7 @@ export default function Navbar() {
               body: JSON.stringify({ secondsToAdd: secondsAccumulated })
             }).catch(err => console.error("Fallo al sincronizar tiempo:", err));
             
-            secondsAccumulated = 0; // Reiniciamos el acumulador local tras guardar
+            secondsAccumulated = 0; 
           }
 
           return newSeconds;
@@ -83,11 +122,9 @@ export default function Navbar() {
       if (interval) clearInterval(interval);
     }
 
-    // Cleanup: Intentar guardar los segundos sobrantes si el jugador cierra la página o se desloguea
     return () => {
       if (interval) clearInterval(interval);
       if (secondsAccumulated > 0) {
-        // Usamos keepalive para que la petición no se cancele al cerrar la pestaña
         fetch(`${API_URL}/auth/save-playtime`, {
           method: "POST",
           headers: getAuthHeaders(),
@@ -96,25 +133,7 @@ export default function Navbar() {
         }).catch(err => console.error("Fallo al guardar al salir:", err));
       }
     };
-  }, [user]); // eslint-disable-line
-
-  const userLevel = user?.battlePass?.level || 1;
-
-  const baseTotalSeconds = user?.totalPlaySeconds || 0; 
-  const totalCombinedSeconds = baseTotalSeconds + sessionSeconds;
-  const displayHours = Math.floor(totalCombinedSeconds / 3600);
-  const displayMinutes = Math.floor((totalCombinedSeconds % 3600) / 60);
-
-  // URL base de tu backend
-  const API_URL = "https://fs-streets-of-lima-backend.onrender.com";
-
-  // Helper para enviar el token JWT en cada petición
-  const getAuthHeaders = () => {
-    return {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
-    };
-  };
+  },[user, getAuthHeaders]); 
 
   const fetchPendingRequests = useCallback(async () => {
     if (!token) return; 
@@ -137,7 +156,6 @@ export default function Navbar() {
     } catch (error) { console.error(error); }
   }, [API_URL, token]);
 
-  // Cargar datos al abrir el menú de perfil
   useEffect(() => {
     if (isProfileOpen && user) {
       fetchPendingRequests();
@@ -173,12 +191,10 @@ export default function Navbar() {
       if (res.ok) {
         setSearchQuery(""); 
         setSearchResults([]);
-        // Reemplazamos el alert() por nuestro nuevo Pop-up de éxito
         setNotification({ type: "success", message: "SOLICITUD ENVIADA" });
-        setTimeout(() => setNotification(null), 3000); // Desaparece en 3 segundos
+        setTimeout(() => setNotification(null), 3000); 
       } else {
         const errorData = await res.json();
-        // Reemplazamos el alert() por nuestro Pop-up de error
         setNotification({ type: "error", message: errorData.error || "ERROR AL ENVIAR" });
         setTimeout(() => setNotification(null), 3000);
       }
@@ -196,10 +212,9 @@ export default function Navbar() {
       });
 
       if (res.ok) {
-        // Remover localmente para actualizar la UI sin recargar
         setPendingRequests(prev => prev.filter(req => req.id !== friendshipId));
         if (status === 'ACCEPTED') {
-          fetchFriends(); // Recargar lista de amigos
+          fetchFriends(); 
         }
       }
     } catch (error) {
@@ -207,12 +222,18 @@ export default function Navbar() {
     }
   };
 
+  // 🔥 NUEVO: Los links base
   const navLinks = [
     { to: "/", label: "HOME" },
     { to: "/cosmetics_store", label: "SHOP" },
     { to: "/battle_pass", label: "COMBO PASS" },
     { to: "/premium_store", label: "SUNNYS" },
   ];
+
+  // 🔥 NUEVO: Si es admin, inyectamos la pestaña nueva en el Navbar
+  if (isAdmin) {
+    navLinks.push({ to: "/admin", label: "CONTROLES ADMIN", isAdminLink: true });
+  }
 
   return (
     <nav className="relative z-40 flex items-center justify-between lg:justify-end bg-[#0a0a0a] border-b border-zinc-800 p-4 h-[70px] font-dogica">
@@ -239,7 +260,11 @@ export default function Navbar() {
                 key={link.to}
                 to={link.to}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="w-full text-center py-4 text-xs text-zinc-400 hover:text-yellow-300 hover:bg-zinc-900 transition-colors uppercase tracking-widest"
+                className={`w-full text-center py-4 text-xs transition-colors uppercase tracking-widest ${
+                  link.isAdminLink 
+                    ? "text-yellow-400 hover:text-yellow-300 font-bold bg-yellow-400/10" 
+                    : "text-zinc-400 hover:text-yellow-300 hover:bg-zinc-900"
+                }`}
               >
                 {link.label}
               </Link>
@@ -253,7 +278,11 @@ export default function Navbar() {
           <div key={link.to} className="flex items-center">
             <Link
               to={link.to}
-              className="hover:text-yellow-300 transition-colors uppercase tracking-widest"
+              className={`transition-colors uppercase tracking-widest ${
+                link.isAdminLink 
+                  ? "text-yellow-400 hover:text-yellow-300 font-bold drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" 
+                  : "hover:text-yellow-300"
+              }`}
             >
               {link.label}
             </Link>
@@ -264,7 +293,6 @@ export default function Navbar() {
         ))}
       </div>
 
-      {/* SECCIÓN DERECHA: Autenticación / Perfil */}
       <div className="flex items-center flex-shrink-0">
         {!user ? (
           <button 
@@ -295,7 +323,6 @@ export default function Navbar() {
                   transition={{ duration: 0.2, ease: "easeOut" }}
                   className="absolute top-16 right-0 w-[85vw] max-w-[320px] lg:w-[22vw] lg:min-w-[320px] bg-[#111] border border-zinc-800 rounded shadow-2xl p-6 font-dogica z-50 origin-top-right"
                 >
-                  {/* Cabecera */}
                   <div className="flex items-center gap-4 mb-5">
                       <img src={faceSprite} alt="Avatar" className="w-16 h-16 border-2 border-zinc-700 rounded rendering-pixelated bg-zinc-800 aspect-square object-cover" />
                       <div>
@@ -306,7 +333,6 @@ export default function Navbar() {
                       </div>
                   </div>
                   
-                  {/* Personaje */}
                   <div className="flex items-center gap-3 mb-4 bg-[#1a1a1a] p-2 rounded border border-zinc-800/50">
                       <img src={faceSprite} alt="Fav Char" className="w-10 h-10 border border-zinc-700 rounded rendering-pixelated bg-zinc-800 aspect-square object-cover" />
                       <div className="text-zinc-400 text-[10px]">
@@ -316,7 +342,6 @@ export default function Navbar() {
                   
                   <hr className="border-zinc-800 my-5" />
                   
-                  {/* YOUR FRIENDS DINÁMICO */}
                   <div className="text-zinc-500 text-[10px] mb-3 tracking-widest">YOUR FRIENDS</div>
                   {friendsList.length === 0 ? (
                     <div className="text-[9px] text-zinc-600 mb-4 italic">No tienes amigos agregados aún.</div>
@@ -339,7 +364,6 @@ export default function Navbar() {
                     ))
                   )}
 
-                  {/* ADD FRIEND (Buscador) */}
                   <div className="text-zinc-500 text-[10px] mb-2 tracking-widest">ADD FRIEND</div>
                   <form onSubmit={handleSearchUser} className="flex items-center gap-2 mb-4">
                     <input 
@@ -355,7 +379,6 @@ export default function Navbar() {
                     </button>
                   </form>
 
-                  {/* RESULTADOS DE BÚSQUEDA */}
                   {searchResults.length > 0 && (
                     <div className="mb-4 flex flex-col gap-2">
                       {searchResults.map((resUser) => (
@@ -372,7 +395,6 @@ export default function Navbar() {
                     </div>
                   )}
 
-                  {/* FRIEND REQUESTS DINÁMICO */}
                   <div className="text-zinc-500 text-[10px] mb-2 tracking-widest">REQUESTS</div>
                   <div className="flex flex-col gap-2 mb-5">
                     {pendingRequests.length === 0 ? (
@@ -396,14 +418,13 @@ export default function Navbar() {
                     )}
                   </div>
 
-                  {/* BOTÓN DE ADMIN */}
-                  {user.email === "admin@streetsoflima.com" && (
+                  {isAdmin && (
                     <Link 
                       to="/admin" 
                       onClick={() => setIsProfileOpen(false)}
-                      className="w-full flex items-center justify-center bg-green-900/30 text-green-400 border border-green-900/50 py-3 mb-2 text-[10px] tracking-widest hover:bg-green-500 hover:text-black transition-all rounded"
+                      className="w-full flex items-center justify-center bg-yellow-400/20 text-yellow-400 border border-yellow-400/50 py-3 mb-2 text-[10px] tracking-widest hover:bg-yellow-400 hover:text-black transition-all rounded"
                     >
-                      [ SYSTEM ADMIN ]
+                      [ CONTROLES ADMIN ]
                     </Link>
                   )}
 
