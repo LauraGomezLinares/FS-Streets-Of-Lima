@@ -86,15 +86,15 @@ export default class MainScene extends Phaser.Scene {
         }
     });
 
-    const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00];
-
     slots.forEach((playerData, index) => {
       if (playerData) {
         const playerSprite = this.add.sprite(200 + (index * 100), 300, 'profe_idle');
         playerSprite.play('anim_idle');
+        
+        playerSprite.setScale(2.5);
         playerSprite.id = playerData.id; playerSprite.hp = 100; playerSprite.mp = 100; 
         playerSprite.isShielded = false; playerSprite.isDead = false;
-        playerSprite.originalTint = colors[index]; playerSprite.setTint(playerSprite.originalTint); 
+        playerSprite.originalTint = 0xffffff;
         this.physics.add.existing(playerSprite);
         
         if (playerData.id === myUserId) this.myPlayer = playerSprite;
