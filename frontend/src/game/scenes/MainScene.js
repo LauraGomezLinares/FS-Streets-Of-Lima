@@ -48,6 +48,10 @@ export default class MainScene extends Phaser.Scene {
         frameRate: 6, repeat: -1
     });
 
+    this.add.image(0, 0, 'bg1').setOrigin(0, 0).setDepth(-10);
+    this.add.image(1280, 0, 'bg2').setOrigin(0, 0).setDepth(-10);
+    this.add.image(2560, 0, 'bg3').setOrigin(0, 0).setDepth(-10);
+
     this.anims.create({ key: 'anim_idle', frames: this.anims.generateFrameNumbers('profe_idle'), frameRate: 8, repeat: -1 });
     this.anims.create({ key: 'anim_walk', frames: this.anims.generateFrameNumbers('profe_walk'), frameRate: 10, repeat: -1 });
     // repeat: 0 para que el golpe/patada se reproduzca una sola vez
@@ -225,7 +229,7 @@ export default class MainScene extends Phaser.Scene {
 
     this.cameraTarget = this.add.zone(0, 0, 1, 1);
     this.cameras.main.startFollow(this.cameraTarget, true, 0.1, 0.1);
-    this.cameras.main.setBounds(0, 0, 15000, 720);
+    this.cameras.main.setBounds(0, 0, 3840, 720); // <--- Ajustado aquí
   }
 
     triggerWin() {
@@ -489,7 +493,7 @@ export default class MainScene extends Phaser.Scene {
           this.tweens.add({
               targets: this.myPlayer,
               x: Phaser.Math.Clamp(targetX, this.isLocked ? camX + 30 : 30, this.isLocked ? camX + 1250 : 2970),
-              y: Phaser.Math.Clamp(targetY, 150, 680),
+              y: Phaser.Math.Clamp(targetY, 500, 710),
               duration: 250, ease: 'Cubic.out',
               onUpdate: () => {
                   // ... [lógica de colisión con enemigos y socket se mantiene igual] ...
@@ -602,6 +606,9 @@ export default class MainScene extends Phaser.Scene {
         
         if (this.cursors.up.isDown || this.wasd.up.isDown) { this.myPlayer.y -= speed; moved = true; dy = -1; } 
         else if (this.cursors.down.isDown || this.wasd.down.isDown) { this.myPlayer.y += speed; moved = true; dy = 1; }
+
+        // AGREGA ESTA LÍNEA PARA LIMITAR DÓNDE PUEDE PISAR EL JUGADOR:
+        this.myPlayer.y = Phaser.Math.Clamp(this.myPlayer.y, 500, 710);
 
         if (dx !== 0 || dy !== 0) {
             this.lastDir = { x: dx, y: dy }; 
