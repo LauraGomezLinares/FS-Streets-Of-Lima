@@ -2,26 +2,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 const SUNNY_PACKS = [
-    { 
-      id: 1, amount: 1000, price: "9.99", name: "POCKET SUNNYS", bonus: null, 
-      glow: "hover:shadow-[0_0_20px_rgba(255,220,50,0.2)]", 
-      image: "/assets/sunnys1.png" 
-    },
-    { 
-      id: 2, amount: 2800, price: "24.99", name: "STASH SUNNYS", bonus: "+300 BONUS", 
-      glow: "hover:shadow-[0_0_30px_rgba(255,220,50,0.4)]", 
-      image: "/assets/sunnys2.png" 
-    },
-    { 
-      id: 3, amount: 5000, price: "39.99", name: "VAULT SUNNYS", bonus: "+1000 BONUS", 
-      glow: "hover:shadow-[0_0_40px_rgba(255,220,50,0.6)]", 
-      image: "/assets/sunnys3.png" 
-    },
-    { 
-      id: 4, amount: 13500, price: "99.99", name: "TREASURE SUNNYS", bonus: "BEST VALUE", 
-      glow: "hover:shadow-[0_0_60px_rgba(255,220,50,0.8)]", isPopular: true, 
-      image: "/assets/sunnys4.png" 
-    },
+    { id: 1, amount: 1000, price: "9.99", name: "POCKET SUNNYS", bonus: null, glow: "hover:shadow-[0_0_20px_rgba(255,220,50,0.2)]", image: "/sunnys1.png" },
+    { id: 2, amount: 2800, price: "24.99", name: "STASH SUNNYS", bonus: "+300 BONUS", glow: "hover:shadow-[0_0_30px_rgba(255,220,50,0.4)]", image: "/sunnys2.png" },
+    { id: 3, amount: 5000, price: "39.99", name: "VAULT SUNNYS", bonus: "+1000 BONUS", glow: "hover:shadow-[0_0_40px_rgba(255,220,50,0.6)]", image: "/sunnys3.png" },
+    { id: 4, amount: 13500, price: "99.99", name: "TREASURE SUNNYS", bonus: "BEST VALUE", glow: "hover:shadow-[0_0_60px_rgba(255,220,50,0.8)]", isPopular: true, image: "/sunnys4.png" },
 ];
 
 function PremiumStore() {

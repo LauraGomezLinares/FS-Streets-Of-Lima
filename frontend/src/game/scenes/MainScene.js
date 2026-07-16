@@ -198,6 +198,14 @@ export default class MainScene extends Phaser.Scene {
       if (setGameWin) this.time.delayedCall(1500, () => setGameWin(xpEarned));
     }
 
+    triggerGameOver() {
+        if (this.isGameOver) return;
+        this.isGameOver = true;
+        const xpEarned = (this.enemiesKilledCount * 15) + (this.bossKilled ? 300 : 0);
+        const setGameOver = this.registry.get('setGameOver');
+        if (setGameOver) this.time.delayedCall(1000, () => setGameOver(xpEarned));
+    }
+
   damagePlayer(userId, amount, stunDuration = 0) {
       const pSprite = this.players.find(p => p.id === userId);
       if (!pSprite || pSprite.isDead || pSprite.isShielded) return;
@@ -211,14 +219,6 @@ export default class MainScene extends Phaser.Scene {
           this.time.delayedCall(150, () => { if (!pSprite.isDead) pSprite.setTint(pSprite.originalTint); });
       }
       this.events.emit("update_hp", { userId: userId, hpPercent: pSprite.hp / 100 });
-
-      if (this.players.every(p => p.isDead) && !this.isGameOver) {
-          this.isGameOver = true;
-          const xpEarned = (this.enemiesKilledCount * 15) + (this.bossKilled ? 300 : 0);
-          
-          const setGameOver = this.registry.get('setGameOver');
-          if (setGameOver) this.time.delayedCall(1000, () => setGameOver(xpEarned));
-      }
 
       if (userId === this.registry.get('myId') && !pSprite.isDead) {
           this.isStunned = true; pSprite.setAlpha(0.5); 
@@ -310,12 +310,12 @@ export default class MainScene extends Phaser.Scene {
       const boss = this.add.sprite(x, y, 'boss_idle');
       boss.id = id; 
       boss.setScale(1.5);
-      boss.hp = 60 + (this.players.length * 20); // Mucha Vida!
+      boss.hp = 15 + (this.players.length * 5); // Mucha Vida!
       boss.activeStatus = true; 
       boss.isBoss = true;
       boss.state = 'MOVE';
       boss.stateTimer = this.time.now + 2000;
-      boss.summonTimer = this.time.now + 5000; // Invoca cada 5s
+      boss.summonTimer = this.time.now + 10000; // Invoca cada 5s
       boss.hurtTimer = 0;
       boss.play('boss_walk_anim');
       this.enemies.push(boss);
@@ -376,6 +376,10 @@ export default class MainScene extends Phaser.Scene {
   }
 
   update() {
+
+    if (this.players.length > 0 && this.players.every(p => p.isDead) && !this.isGameOver) {
+        this.triggerGameOver();
+    }
     const socket = this.registry.get('socket');
     const myUserId = this.registry.get('myId');
     const camX = this.cameras.main.scrollX;
@@ -525,7 +529,6 @@ export default class MainScene extends Phaser.Scene {
 
             // INTELIGENCIA DEL JEFE
             if (enemy.isBoss) {
-                // 1. Invocar secuaces cada 5s
                 if (this.time.now > enemy.summonTimer) {
                     enemy.summonTimer = this.time.now + 5000;
                     const eId = 'enemy_' + Date.now();
@@ -535,23 +538,34 @@ export default class MainScene extends Phaser.Scene {
                     socket.emit("game:spawn_enemy", { id: eId, x: sX, y: sY, offsetX: enemy.offsetX, offsetY: enemy.offsetY });
                 }
 
-                if (enemy.state === 'HURT') return; // Si le pegaron duro, espera
+                // Sacar al Boss del estado HURT para que vuelva a moverse
+                if (enemy.state === 'HURT') {
+                    if (this.time.now > enemy.hurtTimer) {
+                        enemy.state = 'MOVE';
+                        enemy.stateTimer = this.time.now + 1000;
+                        enemy.play('boss_walk_anim');
+                    }
+                    return; 
+                }
 
                 // Máquina de Estados (Moverse vs Atacar)
                 if (this.time.now > enemy.stateTimer) {
                     if (enemy.state === 'MOVE') {
                         enemy.state = 'ATTACK';
                         enemy.stateTimer = this.time.now + 3000; 
-                        enemy.stop(); // Detiene animación
+                        enemy.stop(); 
                         enemy.setTexture('boss_atk');
                         
-                        // Lanza AoE en áreas aleatorias cerca de los jugadores
+                        // Bombas dirigidas a los jugadores vivos
                         const spots = [];
-                        for(let i=0; i<3; i++) {
-                            const rp = this.players[Phaser.Math.Between(0, this.players.length - 1)];
-                            spots.push({ x: rp.x + Phaser.Math.Between(-100, 100), y: rp.y + Phaser.Math.Between(-50, 50) });
-                        }
-                        socket.emit("game:boss_aoe", { spots });
+                        this.players.forEach(p => {
+                            if (!p.isDead) {
+                                spots.push({ x: p.x, y: p.y }); // Un billete cae EXACTAMENTE encima del jugador
+                                spots.push({ x: p.x + Phaser.Math.Between(-120, 120), y: p.y + Phaser.Math.Between(-60, 60) }); // Otro cae cerca
+                            }
+                        });
+                        
+                        if (spots.length > 0) socket.emit("game:boss_aoe", { spots });
 
                     } else {
                         enemy.state = 'MOVE';
@@ -573,7 +587,7 @@ export default class MainScene extends Phaser.Scene {
                         enemy.y += Math.sin(angle) * 0.7;
                     }
                 }
-                return; // Evita que ejecute la lógica de los enemigos normales
+                return;// Evita que ejecute la lógica de los enemigos normales
             }
 
             // 🔥 INTELIGENCIA DE ENEMIGOS NORMALES
