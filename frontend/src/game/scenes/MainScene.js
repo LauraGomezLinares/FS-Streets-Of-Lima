@@ -8,7 +8,7 @@ export default class MainScene extends Phaser.Scene {
   preload() {
     const g = this.make.graphics({ x: 0, y: 0, add: false });
 
-    this.load.image('bg1', '/backgrounds/Escenario_UTP1.png');
+    this.load.image('bg1', '/backgrounds/Escenario_UTP1.jpeg');
     this.load.image('bg2', '/backgrounds/Escenario_UTP2.jpeg');
     this.load.image('bg3', '/backgrounds/Escenario_UTP3.jpeg');
 
@@ -52,9 +52,11 @@ export default class MainScene extends Phaser.Scene {
         frameRate: 6, repeat: -1
     });
 
-    this.add.image(0, 0, 'bg1').setOrigin(0, 0).setDepth(-10);
-    this.add.image(1280, 0, 'bg2').setOrigin(0, 0).setDepth(-10);
-    this.add.image(2560, 0, 'bg3').setOrigin(0, 0).setDepth(-10);
+    this.add.image(0, 720, 'bg1').setOrigin(0, 1).setDepth(-10);
+    
+    // bg2 y bg3 empiezan en los múltiplos de 1536 y los forzamos a medir lo mismo
+    this.add.image(1536, 720, 'bg2').setOrigin(0, 1).setDepth(-10).setDisplaySize(1536, 1024);
+    this.add.image(3072, 720, 'bg3').setOrigin(0, 1).setDepth(-10).setDisplaySize(1536, 1024);
 
     this.anims.create({ key: 'anim_idle', frames: this.anims.generateFrameNumbers('profe_idle'), frameRate: 8, repeat: -1 });
     this.anims.create({ key: 'anim_walk', frames: this.anims.generateFrameNumbers('profe_walk'), frameRate: 10, repeat: -1 });
@@ -233,7 +235,7 @@ export default class MainScene extends Phaser.Scene {
 
     this.cameraTarget = this.add.zone(0, 0, 1, 1);
     this.cameras.main.startFollow(this.cameraTarget, true, 0.1, 0.1);
-    this.cameras.main.setBounds(0, 0, 3840, 720); 
+    this.cameras.main.setBounds(0, 0, 4608, 720); // <--- Nuevo límite total
   }
 
     triggerWin() {
@@ -497,8 +499,8 @@ export default class MainScene extends Phaser.Scene {
 
           this.tweens.add({
               targets: this.myPlayer,
-              x: Phaser.Math.Clamp(targetX, this.isLocked ? camX + 30 : 30, this.isLocked ? camX + 1250 : 3810), 
-              y: Phaser.Math.Clamp(targetY, 420, 680),
+              x: Phaser.Math.Clamp(targetX, this.isLocked ? camX + 30 : 30, this.isLocked ? camX + 1250 : 4570), 
+              y: Phaser.Math.Clamp(targetY, 420, 680), 
               duration: 250, ease: 'Cubic.out',
               onUpdate: () => {
                   this.enemies.forEach(enemy => {
