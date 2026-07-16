@@ -75,6 +75,48 @@ async function claimReward(req, res) {
   }
 }
 
+async function saveMatchXp(req, res) {
+  try {
+    const { xpToAdd } = req.body;
+    if (!xpToAdd || xpToAdd <= 0) return res.json({ success: true, finalXp: 0 });
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: { battlePassProgress: true }
+    });
+
+    if (!user || !user.battlePassProgress) return res.status(404).json({ error: "Progreso no encontrado." });
+
+    // Verificamos si tiene un Boost de XP activo de sus recompensas
+    let multiplier = 1.0;
+    if (user.xpBoostEndsAt && new Date() < new Date(user.xpBoostEndsAt)) {
+      multiplier = user.xpBoostMultiplier || 1.0;
+    }
+
+    // Calculamos la XP final y subimos de nivel si es necesario
+    const finalXp = Math.floor(xpToAdd * multiplier);
+
+    let newXp = user.battlePassProgress.xp + finalXp;
+    let newLevel = user.battlePassProgress.level;
+
+    while (newXp >= 1000) {
+      newLevel += 1;
+      newXp -= 1000;
+    }
+
+    // Guardamos en la base de datos
+    await prisma.battlePassProgress.update({
+      where: { id: user.battlePassProgress.id },
+      data: { xp: newXp, level: newLevel }
+    });
+
+    res.json({ success: true, finalXp, level: newLevel, xp: newXp });
+  } catch (error) {
+    console.error("Error guardando XP de partida:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+}
+
 // [DEV] Botón de simular XP
 async function addDevXp(req, res) {
   try {

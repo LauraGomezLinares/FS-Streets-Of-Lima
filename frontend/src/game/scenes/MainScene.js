@@ -59,6 +59,9 @@ export default class MainScene extends Phaser.Scene {
     //  Contador de Emboscadas
     this.ambushCount = 0; 
 
+    this.enemiesKilledCount = 0; 
+    this.bossKilled = false;
+
     this.nextAmbushX = 1000; 
     this.totalEnemiesToSpawn = 0;
     this.spawnedEnemiesCount = 0;
@@ -185,12 +188,15 @@ export default class MainScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, 3000, 720);
   }
 
-  triggerWin() {
+    triggerWin() {
       if (this.isGameOver) return;
       this.isGameOver = true;
+      
+      const xpEarned = (this.enemiesKilledCount * 15) + (this.bossKilled ? 300 : 0);
+      
       const setGameWin = this.registry.get('setGameWin');
-      if (setGameWin) this.time.delayedCall(1500, () => setGameWin(true));
-  }
+      if (setGameWin) this.time.delayedCall(1500, () => setGameWin(xpEarned));
+    }
 
   damagePlayer(userId, amount, stunDuration = 0) {
       const pSprite = this.players.find(p => p.id === userId);
@@ -208,8 +214,10 @@ export default class MainScene extends Phaser.Scene {
 
       if (this.players.every(p => p.isDead) && !this.isGameOver) {
           this.isGameOver = true;
+          const xpEarned = (this.enemiesKilledCount * 15) + (this.bossKilled ? 300 : 0);
+          
           const setGameOver = this.registry.get('setGameOver');
-          if (setGameOver) this.time.delayedCall(1000, () => setGameOver(true));
+          if (setGameOver) this.time.delayedCall(1000, () => setGameOver(xpEarned));
       }
 
       if (userId === this.registry.get('myId') && !pSprite.isDead) {
@@ -304,6 +312,9 @@ export default class MainScene extends Phaser.Scene {
       
       if (enemy.hp <= 0) {
           enemy.activeStatus = false;
+
+          if (enemy.isBoss) this.bossKilled = true;
+          else this.enemiesKilledCount++;
 
           // 🔥 SI MUERE EL JEFE: VICTORIA INMEDIATA
           if (enemy.isBoss) {
@@ -437,7 +448,7 @@ export default class MainScene extends Phaser.Scene {
               socket.emit("game:attack", { userId: myUserId, texture: textureName });
 
               this.enemies.forEach(enemy => {
-                  // 🔥 NUEVO: Verificar hacia dónde mira el jugador
+                  // Verificar hacia dónde mira el jugador
                   const isFacingRight = this.lastDir.x >= 0;
                   // Si mira a la derecha, el enemigo debe estar a la derecha (y viceversa)
                   const isFacingEnemy = isFacingRight ? (enemy.x > this.myPlayer.x - 20) : (enemy.x < this.myPlayer.x + 20);
