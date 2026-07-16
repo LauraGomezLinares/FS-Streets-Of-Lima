@@ -136,6 +136,16 @@ function setupSocket(io) {
         socket.to(`lobby:${socket.currentLobby}`).emit("game:boss_aoe", data);
     });
 
+    // Crear enemigos
+    socket.on("game:spawn_enemy", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:spawn_enemy", data);
+    });
+
+    // Sincronizar el movimiento de los enemigos (Vital para clientes)
+    socket.on("game:enemies_sync", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:enemies_sync", data);
+    });
+
     // Victoria global
     socket.on("game:trigger_win", () => {
         socket.to(`lobby:${socket.currentLobby}`).emit("game:you_win");

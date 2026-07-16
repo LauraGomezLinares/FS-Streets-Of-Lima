@@ -115,7 +115,8 @@ export default class MainScene extends Phaser.Scene {
             if (remoteSprite) remoteSprite.setTexture(data.texture);
         });
         socket.on("game:ambush_triggered", (data) => this.lockCamera(data.lockX));
-        socket.on("game:enemy_spawned", (data) => {
+        // Escuchar el nombre correcto del evento
+        socket.on("game:spawn_enemy", (data) => {
             if(data.isBoss) this.createBoss(data.id, data.x, data.y);
             else this.createEnemy(data.id, data.x, data.y, data.offsetX, data.offsetY);
         });
@@ -161,6 +162,17 @@ export default class MainScene extends Phaser.Scene {
                         }
                     }
                 });
+            });
+        });
+        // Los clientes actualizan la posición de los enemigos
+        socket.on("game:enemies_sync", (enemiesData) => {
+            if (this.isHost) return; // El Host no necesita esto
+            enemiesData.forEach(data => {
+                const enemy = this.enemies.find(e => e.id === data.id);
+                if (enemy) {
+                    enemy.x = data.x;
+                    enemy.y = data.y;
+                }
             });
         });
 
@@ -225,7 +237,7 @@ export default class MainScene extends Phaser.Scene {
       }
 
       // EMBOSCADA NORMAL
-      this.totalEnemiesToSpawn = 5 + ((this.players.length - 1) * 3);
+      this.totalEnemiesToSpawn = 4 + ((this.players.length - 1) * 3);
       this.spawnedEnemiesCount = 0;
       if (this.goArrow) { this.goArrow.destroy(); this.goArrow = null; }
 
@@ -419,13 +431,18 @@ export default class MainScene extends Phaser.Scene {
               else if (!this.unlockedSkills.includes('HEAVY') && Phaser.Input.Keyboard.JustDown(this.wasd.j)) { textureName = 'atk_j'; attacked = true; }
           }
 
-          if (attacked) {
+        if (attacked) {
               this.isAttacking = true; this.attackCooldown = true;
               this.myPlayer.setTexture(textureName); 
               socket.emit("game:attack", { userId: myUserId, texture: textureName });
 
               this.enemies.forEach(enemy => {
-                  if (enemy.activeStatus && Phaser.Math.Distance.Between(this.myPlayer.x, this.myPlayer.y, enemy.x, enemy.y) < (enemy.isBoss ? 120 : 100)) {
+                  // 🔥 NUEVO: Verificar hacia dónde mira el jugador
+                  const isFacingRight = this.lastDir.x >= 0;
+                  // Si mira a la derecha, el enemigo debe estar a la derecha (y viceversa)
+                  const isFacingEnemy = isFacingRight ? (enemy.x > this.myPlayer.x - 20) : (enemy.x < this.myPlayer.x + 20);
+
+                  if (enemy.activeStatus && isFacingEnemy && Phaser.Math.Distance.Between(this.myPlayer.x, this.myPlayer.y, enemy.x, enemy.y) < (enemy.isBoss ? 120 : 100)) {
                       this.damageEnemy(enemy.id, damageToDeal); 
                       socket.emit("game:enemy_hit", { enemyId: enemy.id, amount: damageToDeal }); 
                   }
@@ -472,7 +489,7 @@ export default class MainScene extends Phaser.Scene {
         this.enemies.forEach(enemy => {
             if (!enemy.activeStatus) return;
 
-            // 🔥 INTELIGENCIA DEL JEFE
+            // INTELIGENCIA DEL JEFE
             if (enemy.isBoss) {
                 // 1. Invocar secuaces cada 5s
                 if (this.time.now > enemy.summonTimer) {
@@ -486,7 +503,7 @@ export default class MainScene extends Phaser.Scene {
 
                 if (enemy.state === 'HURT') return; // Si le pegaron duro, espera
 
-                // 2. Máquina de Estados (Moverse vs Atacar)
+                // Máquina de Estados (Moverse vs Atacar)
                 if (this.time.now > enemy.stateTimer) {
                     if (enemy.state === 'MOVE') {
                         enemy.state = 'ATTACK';
@@ -596,6 +613,10 @@ export default class MainScene extends Phaser.Scene {
                 }
             }
         });
+        const syncData = this.enemies.filter(e => e.activeStatus).map(e => ({ id: e.id, x: e.x, y: e.y }));
+        if (syncData.length > 0) {
+            socket.emit("game:enemies_sync", syncData);
+        }
     }
   }
 }
