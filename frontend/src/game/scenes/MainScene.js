@@ -264,14 +264,37 @@ export default class MainScene extends Phaser.Scene {
       });
   }
 
-  clearAmbush() {
+    clearAmbush() {
       this.isLocked = false;
       this.cameras.main.setBounds(0, 0, 15000, 720);
       this.nextAmbushX = this.cameraTarget.x + 1200;
       const camX = this.cameras.main.scrollX;
       this.goArrow = this.add.sprite(camX + 1150, 360, 'arrow');
       this.tweens.add({ targets: this.goArrow, x: this.goArrow.x + 20, duration: 400, yoyo: true, repeat: -1 });
-  }
+
+      // Mecánica de Revivir Compañeros Caídos
+      this.players.forEach(p => {
+          if (p.isDead) {
+              p.isDead = false;
+              p.hp = 50; // Le devolvemos el 50% de la vida
+              
+              // Le quitamos el color gris de muerto y le devolvemos su color original
+              p.setTint(p.originalTint); 
+              
+              // Animación para que se levante del suelo
+              this.tweens.add({ 
+                  targets: p, 
+                  angle: 0,         // Vuelve a estar derecho (había rotado 90 grados al morir)
+                  y: p.y - 20,      // Lo subimos los 20 píxeles que bajó al caer
+                  duration: 500, 
+                  ease: 'Bounce.easeOut' 
+              });
+
+              // Actualizamos la barra de vida en la UI para todos
+              this.events.emit("update_hp", { userId: p.id, hpPercent: 0.5 });
+          }
+        });
+    }
 
   createEnemy(id, x, y, offsetX, offsetY) {
       const enemy = this.add.sprite(x, y, 'enemy');
