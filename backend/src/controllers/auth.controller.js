@@ -4,7 +4,7 @@ const prisma = require("../lib/prisma");
 const { generateOtp, getOtpExpiry, isOtpExpired } = require("../utils/otp");
 const { sendOtpEmail } = require("../utils/mailer");
 
-// Generación de JWT firmados con expiraciones según el Rol (Requerimiento 3 y 7)
+// Generación de JWT
 function signToken(user) {
   const expiresIn = user.role === "ADMIN"
     ? process.env.ADMIN_JWT_EXPIRES_IN || "30m"
@@ -17,7 +17,7 @@ function signToken(user) {
   );
 }
 
-// Log de Auditoría de Accesos en Base de Datos (Requerimiento 7)
+// Log de Auditoría
 async function logAttempt({ userId, req, success, isAdminLogin = false }) {
   try {
     await prisma.loginLog.create({
@@ -50,31 +50,21 @@ async function savePlaytime(req, res) {
   }
 }
 
-// No olvides agregar 'savePlaytime' al module.exports al final del archivo
-
-// POST /auth/register -> Crea usuario y solicita OTP directo (Garantiza Requerimiento 4)
 async function register(req, res) {
   try {
     const { username, email, password } = req.body;
 
-    if (!username || !email || !password) {
-      return res.status(400).json({ error: "Completa todos los campos." });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres." });
-    }
+    if (!username || !email || !password) return res.status(400).json({ error: "Completa todos los campos." });
+    if (password.length < 6) return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres." });
 
     const existing = await prisma.user.findFirst({
       where: { OR: [{ email }, { username }] },
     });
-    if (existing) {
-      return res.status(409).json({ error: "Email o username ya registrado." });
-    }
+    if (existing) return res.status(409).json({ error: "Email o username ya registrado." });
 
     const passwordHash = await bcrypt.hash(password, 10);
     const otpCode = generateOtp();
 
-    // Transacción/Creación del usuario con su progreso inicial y OTP listo
     const user = await prisma.user.create({
       data: {
         username,
@@ -84,17 +74,16 @@ async function register(req, res) {
         otpCode,
         otpExpiresAt: getOtpExpiry(),
         otpVerified: false,
-        battlePass: { create: { level: 1, xp: 0 } }, // Mapeado al cascade schema
+        battlePass: { create: { level: 1, xp: 0 } }, 
       },
     });
 
-    // Envío del correo con el código OTP
     await sendOtpEmail(user.email, otpCode);
 
     return res.status(201).json({
       message: "Usuario registrado con éxito. Código OTP enviado a tu correo.",
       otpRequired: true,
-      userId: user.id, // El frontend redirige al paso OTP inmediatamente
+      userId: user.id,
     });
   } catch (err) {
     console.error(err);
@@ -102,21 +91,14 @@ async function register(req, res) {
   }
 }
 
-// POST /auth/login -> Valida credenciales y despacha OTP (Requerimiento 4)
 async function login(req, res) {
   try {
     const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ error: "Completa todos los campos." });
-    }
+    if (!email || !password) return res.status(400).json({ error: "Completa todos los campos." });
 
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      return res.status(401).json({ error: "Credenciales incorrectas." });
-    }
-    if (user.isBanned) {
-      return res.status(403).json({ error: "Esta cuenta ha sido suspendida por la administración." });
-    }
+    if (!user) return res.status(401).json({ error: "Credenciales incorrectas." });
+    if (user.isBanned) return res.status(403).json({ error: "Esta cuenta ha sido suspendida." });
 
     const validPassword = await bcrypt.compare(password, user.passwordHash);
     if (!validPassword) {
@@ -132,37 +114,32 @@ async function login(req, res) {
 
     await sendOtpEmail(user.email, otpCode);
 
-    return res.status(200).json({
-      message: "Código OTP enviado a tu correo.",
-      otpRequired: true,
-      userId: user.id,
-    });
+    return res.status(200).json({ message: "Código OTP enviado a tu correo.", otpRequired: true, userId: user.id });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Error interno al iniciar sesión." });
   }
 }
 
-// POST /auth/verify-otp -> Valida el código y libera el Token JWT definitivo (Requerimiento 3)
 async function verifyOtp(req, res) {
   try {
     const { userId, code } = req.body;
-    if (!userId || !code) {
-      return res.status(400).json({ error: "Faltan parámetros obligatorios." });
-    }
+    if (!userId || !code) return res.status(400).json({ error: "Faltan parámetros obligatorios." });
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    // 🔥 AHORA: Incluimos el battlePass para que el inicio de sesión devuelva todo
+    const user = await prisma.user.findUnique({ 
+        where: { id: userId },
+        include: { battlePassProgress: true } 
+    });
     if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
 
-    if (isOtpExpired(user.otpExpiresAt)) {
-      return res.status(400).json({ error: "El código OTP ha expirado. Solicita uno nuevo." });
-    }
+    if (isOtpExpired(user.otpExpiresAt)) return res.status(400).json({ error: "El código OTP ha expirado." });
+    
     if (user.otpCode !== code) {
       await logAttempt({ userId: user.id, req, success: false, isAdminLogin: user.role === "ADMIN" });
       return res.status(400).json({ error: "Código OTP incorrecto." });
     }
 
-    // Limpieza de campos OTP y verificación exitosa
     await prisma.user.update({
       where: { id: user.id },
       data: { otpCode: null, otpExpiresAt: null, otpVerified: true },
@@ -171,9 +148,21 @@ async function verifyOtp(req, res) {
     await logAttempt({ userId: user.id, req, success: true, isAdminLogin: user.role === "ADMIN" });
 
     const token = signToken(user);
+    
+    // 🔥 AHORA: Retornamos el objeto COMPLETO del usuario al Frontend
     return res.status(200).json({
       token,
-      user: { id: user.id, username: user.username, email: user.email, role: user.role },
+      user: { 
+          id: user.id, 
+          username: user.username, 
+          email: user.email, 
+          role: user.role,
+          battlePass: user.battlePassProgress,
+          totalPlaySeconds: user.totalPlaySeconds, 
+          sunnys: user.sunnys,
+          skillPoints: user.skillPoints,           
+          unlockedSkills: user.unlockedSkills      
+      },
     });
   } catch (err) {
     console.error(err);
@@ -181,7 +170,6 @@ async function verifyOtp(req, res) {
   }
 }
 
-// POST /auth/resend-otp -> Regeneración dinámica en caso de expiración
 async function resendOtp(req, res) {
   try {
     const { userId } = req.body;
@@ -210,10 +198,11 @@ async function me(req, res) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      include: { battlePassProgress: true }, 
+      include: { battlePassProgress: true },
     });
     if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
 
+    // Enviamos la data completa en los refrescos de pantalla
     return res.json({
       id: user.id,
       username: user.username,
@@ -222,8 +211,8 @@ async function me(req, res) {
       battlePass: user.battlePassProgress,
       totalPlaySeconds: user.totalPlaySeconds, 
       sunnys: user.sunnys,
-      skillPoints: user.skillPoints,
-      unlockedSkills: user.unlockedSkills
+      skillPoints: user.skillPoints,           
+      unlockedSkills: user.unlockedSkills      
     });
   } catch (err) {
     console.error(err);
@@ -233,14 +222,11 @@ async function me(req, res) {
 
 async function checkRole(req, res) {
   try {
-    // Buscamos al usuario en la base de datos usando el ID de su sesión
     const userDb = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { role: true } // Solo traemos la columna 'role' para que sea súper rápido
+      select: { role: true } 
     });
-
     if (!userDb) return res.status(404).json({ error: "Usuario no encontrado." });
-
     res.json({ role: userDb.role });
   } catch (error) {
     console.error("Error consultando el rol:", error);
@@ -248,30 +234,29 @@ async function checkRole(req, res) {
   }
 }
 
+// Función para comprar habilidades
 async function buySkill(req, res) {
-  try {
-    const { skillId, cost } = req.body;
-    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-
-    if (user.skillPoints < cost) return res.status(400).json({ error: "Puntos insuficientes." });
-    if (user.unlockedSkills.includes(skillId)) return res.status(400).json({ error: "Ya tienes esta habilidad." });
-
-    // Restamos el costo y guardamos el nombre de la habilidad en su cuenta
-    const updatedUser = await prisma.user.update({
-      where: { id: req.user.id },
-      data: {
-        skillPoints: { decrement: cost },
-        unlockedSkills: { push: skillId }
-      },
-      // Devolvemos el perfil actualizado
-      select: { id: true, username: true, email: true, role: true, sunnys: true, skillPoints: true, unlockedSkills: true }
-    });
-
-    res.json(updatedUser);
-  } catch (error) {
-    console.error("Error comprando habilidad:", error);
-    res.status(500).json({ error: "Error interno del servidor." });
-  }
+    try {
+      const { skillId, cost } = req.body;
+      const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+  
+      if (user.skillPoints < cost) return res.status(400).json({ error: "Puntos insuficientes." });
+      if (user.unlockedSkills.includes(skillId)) return res.status(400).json({ error: "Ya tienes esta habilidad." });
+  
+      const updatedUser = await prisma.user.update({
+        where: { id: req.user.id },
+        data: {
+          skillPoints: { decrement: cost },
+          unlockedSkills: { push: skillId }
+        },
+        select: { id: true, username: true, email: true, role: true, sunnys: true, skillPoints: true, unlockedSkills: true, totalPlaySeconds: true }
+      });
+  
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error comprando habilidad:", error);
+      res.status(500).json({ error: "Error interno." });
+    }
 }
 
 module.exports = { register, login, verifyOtp, resendOtp, me, savePlaytime, checkRole, buySkill };
