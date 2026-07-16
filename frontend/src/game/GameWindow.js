@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as Phaser from "phaser"; 
-import { useLobby } from "../../context/LobbyContext";
-import { useAuth } from "../../context/AuthContext";
+import { useLobby } from "../context/LobbyContext";
+import { useAuth } from "../context/AuthContext";
 import MainScene from "./scenes/MainScene";
 import UIScene from "./scenes/UIScene";
 

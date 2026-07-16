@@ -116,6 +116,11 @@ function setupSocket(io) {
         socket.to(`lobby:${socket.currentLobby}`).emit("game:do_restart");
     });
 
+    // Aviso de que se terminó la emboscada
+    socket.on("game:ambush_cleared", () => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:ambush_cleared");
+    });
+
     // Orden de destruir el juego y volver al lobby
     socket.on("game:return_lobby", () => {
         socket.to(`lobby:${socket.currentLobby}`).emit("game:return_lobby");
