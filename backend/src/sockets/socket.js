@@ -1,0 +1,149 @@
+const jwt = require("jsonwebtoken");
+
+function setupSocket(io) {
+  io.use((socket, next) => {
+    const token = socket.handshake.auth?.token;
+    if (!token) return next();
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      socket.user = decoded;
+    } catch (err) {}
+    next();
+  });
+
+  io.on("connection", (socket) => {
+    if (socket.user?.id) {
+      socket.join(`user:${socket.user.id}`);
+      socket.join(`lobby:${socket.user.id}`);
+      socket.currentLobby = socket.user.id; // Rastreamos en qué lobby está metido el desgraciao
+      console.log(`Usuario conectado: ${socket.user.username}`);
+    }
+
+    // Ejemplo: notificación de solicitud de amistad
+    socket.on("friend:request", ({ toUserId, fromUsername }) => {
+      io.to(`user:${toUserId}`).emit("notification", {
+        type: "friend_request",
+        message: `${fromUsername} te envió una solicitud de amistad.`,
+      });
+    });
+
+    //  Un jugador (P1) envía una invitación a un amix
+    socket.on("lobby:invite:send", ({ targetUserId }) => {
+      if (!socket.user) return;
+      io.to(`user:${targetUserId}`).emit("lobby:invite:receive", {
+        senderId: socket.user.id,
+        senderUsername: socket.user.username
+      });
+    });
+
+    socket.on("lobby:invite:respond", ({ senderId, accepted }) => {
+      if (!socket.user) return;
+
+      if (accepted) {
+        // 🔥 NUEVO: Si acepta, lo sacamos de su propio lobby y lo metemos al del líder (P1)
+        if (socket.currentLobby) socket.leave(`lobby:${socket.currentLobby}`);
+        socket.join(`lobby:${senderId}`);
+        socket.currentLobby = senderId;
+      }
+
+      io.to(`user:${senderId}`).emit("lobby:invite:response", {
+        targetId: socket.user.id,
+        targetUsername: socket.user.username,
+        accepted: accepted
+      });
+    });
+
+    socket.on("lobby:ready", ({ isReady }) => {
+      if (!socket.user || !socket.currentLobby) return;
+      
+      // Le avisamos a todos en el lobby que este jugador cambió su estado
+      io.to(`lobby:${socket.currentLobby}`).emit("lobby:player_ready", {
+        userId: socket.user.id,
+        isReady
+      });
+    });
+
+    // El líder da la orden de Iniciar Partida
+    socket.on("lobby:start_game", () => {
+      if (!socket.user || !socket.currentLobby) return;
+      
+      // Le ordenamos a las computadoras de todos en el lobby que arranquen Phaser
+      io.to(`lobby:${socket.currentLobby}`).emit("lobby:game_started");
+    });
+
+    socket.on("game:move", (data) => {
+        // Le mandamos el movimiento a todos en la sala EXCEPTO al que lo envió
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:player_moved", data);
+    });
+
+    // Reenviar animaciones de ataque a la sala
+    socket.on("game:attack", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:player_attacked", data);
+    });
+
+    // El P1 avisa que la cámara debe bloquearse
+    socket.on("game:trigger_ambush", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:ambush_triggered", data);
+    });
+
+    // El P1 genera un enemigo y lo comparte
+    socket.on("game:spawn_enemy", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:enemy_spawned", data);
+    });
+
+    // Alguien golpeó a un enemigo (todos deben bajarle la vida y pintarlo rojo para simular el daño recibido)
+    socket.on("game:enemy_hit", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:enemy_took_damage", data);
+    });
+
+    // Un enemigo realiza la animación de ataque
+    socket.on("game:enemy_attack", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:enemy_attacked", data);
+    });
+
+    // Un jugador recibió daño de un enemigo
+    socket.on("game:player_hit", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:player_took_damage", data);
+    });
+
+    // Votación de reinicio de partida
+    socket.on("game:vote_restart", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:vote_restart", data);
+    });
+
+    // Reiniciar la escena
+    socket.on("game:do_restart", () => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:do_restart");
+    });
+
+    // Aviso de que se terminó la emboscada
+    socket.on("game:ambush_cleared", () => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:ambush_cleared");
+    });
+
+    // Alguien activó el escudo
+    socket.on("game:player_shield", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:player_shielded", data);
+    });
+
+    // Orden de destruir el juego y volver al lobby
+    socket.on("game:return_lobby", () => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:return_lobby");
+    });
+
+    socket.on("disconnect", () => {
+      if (socket.user && socket.currentLobby) {
+        // Le avisamos a todos los que sigan en esa sala que este usuario se voló
+        io.to(`lobby:${socket.currentLobby}`).emit("lobby:member_left", {
+          userId: socket.user.id,
+          username: socket.user.username,
+          isHost: socket.user.id === socket.currentLobby // ¿El que se fue era el líder? chi o ño
+        });
+      }
+      console.log(`❌ Desconectado: ${socket.id}`);
+    });
+    
+  });
+}
+
+module.exports = setupSocket;

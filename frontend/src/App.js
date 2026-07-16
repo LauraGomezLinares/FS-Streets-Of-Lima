@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { LobbyProvider } from "./context/LobbyContext";
 import { AnimatePresence, motion } from "framer-motion";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -70,6 +71,7 @@ function GlobalOverlay() {
 function App() {
   return (
     <AuthProvider>
+      <LobbyProvider>
       <Router>
         <Layout>
           <GlobalOverlay />
@@ -79,6 +81,7 @@ function App() {
           <Footer />
         </Layout>
       </Router>
+      </LobbyProvider>
     </AuthProvider>
   );
 }
