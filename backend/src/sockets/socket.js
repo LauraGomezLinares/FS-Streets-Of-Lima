@@ -131,6 +131,16 @@ function setupSocket(io) {
         socket.to(`lobby:${socket.currentLobby}`).emit("game:return_lobby");
     });
 
+    // Habilidades del Jefe (Lluvia de billetes)
+    socket.on("game:boss_aoe", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:boss_aoe", data);
+    });
+
+    // Victoria global
+    socket.on("game:trigger_win", () => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:you_win");
+    });
+
     socket.on("disconnect", () => {
       if (socket.user && socket.currentLobby) {
         // Le avisamos a todos los que sigan en esa sala que este usuario se voló

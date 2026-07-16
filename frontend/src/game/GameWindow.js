@@ -14,7 +14,7 @@ export default function GameWindow({ onLeave }) {
   const { slots } = useLobby(); 
   const { socket, user } = useAuth(); 
 
-  const [isGameOver, setIsGameOver] = useState(false);
+  const [endState, setEndState] = useState(null);
   const [votes, setVotes] = useState([]);
 
   const activePlayersCount = slots.filter(p => p !== null).length;
@@ -22,7 +22,7 @@ export default function GameWindow({ onLeave }) {
 
   // Reinicia localmente los estados y las escenas de Phaser
     const performRestart = useCallback(() => {
-      setIsGameOver(false);
+      setEndState(null);
       setVotes([]);
       if (phaserGameRef.current) {
           const mainScene = phaserGameRef.current.scene.getScene('MainScene');
@@ -47,8 +47,8 @@ export default function GameWindow({ onLeave }) {
     game.registry.set('slots', slots);
     game.registry.set('socket', socket);
     if (user && user.id) game.registry.set('myId', user.id); 
-    game.registry.set('setGameOver', setIsGameOver); 
-
+    game.registry.set('setGameOver', () => setEndState('GAMEOVER')); 
+    game.registry.set('setGameWin', () => setEndState('WIN')); 
     game.registry.set('unlockedSkills', user?.unlockedSkills || []);
 
     const handleVote = (data) => setVotes(prev => [...new Set([...prev, data.userId])]);
@@ -90,17 +90,17 @@ export default function GameWindow({ onLeave }) {
     <div className="relative w-full flex justify-center py-10 font-dogica">
         <div ref={gameRef} className="border-4 border-zinc-800 shadow-[0_0_30px_rgba(250,204,21,0.2)]" />
         
-        {isGameOver && (
+        {endState && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-                <div className="flex flex-col items-center p-12 bg-[#111] border-2 border-red-600 shadow-[0_0_50px_rgba(220,38,38,0.5)] rounded text-center">
+                <div className={`flex flex-col items-center p-12 bg-[#111] border-2 shadow-[0_0_50px_rgba(0,0,0,0.5)] rounded text-center ${endState === 'WIN' ? 'border-green-500 shadow-green-500/50' : 'border-red-600 shadow-red-600/50'}`}>
                     
-                    <h2 className="text-5xl text-red-500 mb-8 drop-shadow-[0_0_15px_rgba(220,38,38,0.8)] tracking-widest">
-                        GAME OVER
+                    <h2 className={`text-5xl mb-8 drop-shadow-[0_0_15px_rgba(0,0,0,0.8)] tracking-widest ${endState === 'WIN' ? 'text-green-500' : 'text-red-500'}`}>
+                        {endState === 'WIN' ? 'YOU WIN!' : 'GAME OVER'}
                     </h2>
                     
                     {activePlayersCount === 1 ? (
                         <button onClick={handleForceRestart} className="bg-yellow-400 hover:bg-yellow-300 text-black px-10 py-4 mb-6 rounded text-sm transition-all shadow-[0_0_15px_rgba(250,204,21,0.4)]">
-                            REINICIAR
+                            JUGAR DE NUEVO
                         </button>
                     ) : (
                         <div className="flex flex-col items-center mb-6 w-full">
@@ -109,9 +109,7 @@ export default function GameWindow({ onLeave }) {
                                     [ REINICIAR EQUIPO ]
                                 </button>
                             ) : (
-                                <button 
-                                    onClick={handleVoteClick} 
-                                    disabled={hasVoted}
+                                <button onClick={handleVoteClick} disabled={hasVoted}
                                     className={`px-10 py-4 rounded text-xs transition-all tracking-widest ${
                                         hasVoted ? 'bg-green-600 text-black shadow-[0_0_15px_rgba(22,163,74,0.5)]' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-600'
                                     }`}
@@ -124,7 +122,6 @@ export default function GameWindow({ onLeave }) {
                             </span>
                         </div>
                     )}
-
                     <button onClick={handleReturnLobby} className="text-zinc-500 hover:text-white text-[10px] border border-zinc-800 hover:border-zinc-500 px-6 py-3 rounded transition-all mt-4 tracking-widest uppercase">
                         VOLVER AL LOBBY
                     </button>
