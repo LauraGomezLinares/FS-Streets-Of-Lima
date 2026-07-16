@@ -4,3 +4,4 @@ backend/.env
 frontend/.env
 frontend/build/
 *.log
+node_modules/
