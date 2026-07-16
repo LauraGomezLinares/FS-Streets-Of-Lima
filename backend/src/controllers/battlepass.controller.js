@@ -143,4 +143,4 @@ async function addDevXp(req, res) {
   }
 }
 
-module.exports = { getProgress, claimReward, addDevXp };
+module.exports = { getProgress, claimReward, addDevXp, saveMatchXp };
