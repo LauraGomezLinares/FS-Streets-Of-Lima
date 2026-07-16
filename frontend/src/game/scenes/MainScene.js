@@ -8,10 +8,10 @@ export default class MainScene extends Phaser.Scene {
   preload() {
     const g = this.make.graphics({ x: 0, y: 0, add: false });
     
-    this.load.spritesheet('profe_idle', 'characters/SpritesProfe/Profe-Idle.png', { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('profe_walk', 'characters/SpritesProfe/Profe-Walk.png', { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('profe_punch', 'characters/SpritesProfe/Profe-Punch1.png', { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('profe_kick', 'characters/SpritesProfe/Profe-Kick1.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('profe_idle', '/assets/characters/SpritesProfe/Profe-Idle.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('profe_walk', '/assets/characters/SpritesProfe/Profe-Walk.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('profe_punch', '/assets/characters/SpritesProfe/Profe-Punch1.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('profe_kick', '/assets/characters/SpritesProfe/Profe-Kick1.png', { frameWidth: 32, frameHeight: 32 });
     g.fillStyle(0x38bdf8, 1); g.fillRect(0, 0, 4, 4); g.generateTexture('charge_particle', 4, 4); g.clear();
     g.fillStyle(0xffffff, 0.7); g.fillRect(0, 0, 60, 8); g.generateTexture('white_glow', 60, 8); g.clear();
 
