@@ -22,9 +22,15 @@ export default function Lobby() {
     useEffect(() => {
         if (!socket) return;
         const handleStart = () => setIsPlaying(true);
+        const handleReturn = () => setIsPlaying(false); // Función para salir
         
         socket.on("lobby:game_started", handleStart);
-        return () => socket.off("lobby:game_started", handleStart);
+        socket.on("game:return_lobby", handleReturn);   // Escuchar al servidor
+        
+        return () => {
+            socket.off("lobby:game_started", handleStart);
+            socket.off("game:return_lobby", handleReturn);
+        };
     }, [socket]);
 
     const handleProtectedAction = (action) => {
@@ -59,7 +65,7 @@ export default function Lobby() {
                 >
                     &lt; LEAVE GAME
                 </button>
-                <GameWindow />
+                <GameWindow onLeave={() => setIsPlaying(false)} />
             </div>
         );
     }

@@ -156,27 +156,53 @@ export default class MainScene extends Phaser.Scene {
 
   // SISTEMAS DE DAÑO
   
-  damagePlayer(userId, amount, stunDuration = 0) {
+damagePlayer(userId, amount, stunDuration = 0) {
       const pSprite = this.players.find(p => p.id === userId);
-      if (!pSprite) return;
+      // Si ya está muerto, ignoramos el daño
+      if (!pSprite || pSprite.isDead) return;
 
       pSprite.hp -= amount;
-      if (pSprite.hp < 0) pSprite.hp = 0;
-
-      pSprite.setTint(0xff0000);
-      this.time.delayedCall(150, () => {
-          pSprite.setTint(pSprite.originalTint);
-      });
+      
+      if (pSprite.hp <= 0) {
+          pSprite.hp = 0;
+          pSprite.isDead = true; // Marcamos como muerto
+          
+          // Animación de muerte (Se pone gris y cae de lado)
+          pSprite.setTint(0x333333);
+          this.tweens.add({
+              targets: pSprite,
+              angle: 90, // Cae al suelo
+              y: pSprite.y + 20, 
+              duration: 300
+          });
+      } else {
+          pSprite.setTint(0xff0000);
+          this.time.delayedCall(150, () => {
+              if (!pSprite.isDead) pSprite.setTint(pSprite.originalTint);
+          });
+      }
 
       this.events.emit("update_hp", { userId: userId, hpPercent: pSprite.hp / 100 });
 
-      if (userId === this.registry.get('myId')) {
+      // COMPROBAR GAME OVER (¿Están todos muertos?)
+      if (this.players.every(p => p.isDead)) {
+          if (!this.isGameOver) {
+              this.isGameOver = true;
+              const setGameOver = this.registry.get('setGameOver');
+              // Llamamos a React después de 1 segundo para hacerlo dramático
+              if (setGameOver) this.time.delayedCall(1000, () => setGameOver(true));
+          }
+      }
+
+      // Stun local solo si sigo vivo
+      if (userId === this.registry.get('myId') && !pSprite.isDead) {
           this.isStunned = true;
           pSprite.setAlpha(0.5); 
-          
           this.time.delayedCall(stunDuration, () => {
-              this.isStunned = false;
-              pSprite.setAlpha(1); 
+              if (!pSprite.isDead) {
+                  this.isStunned = false;
+                  pSprite.setAlpha(1); 
+              }
           });
       }
   }
@@ -270,7 +296,7 @@ export default class MainScene extends Phaser.Scene {
         this.startAmbush();
     }
 
-    if (this.myPlayer) {
+    if (this.myPlayer && !this.myPlayer.isDead) {
       if (!this.isAttacking && !this.isStunned) {
         let attacked = false;
         let textureName = '';
@@ -339,7 +365,7 @@ export default class MainScene extends Phaser.Scene {
         if (enemy.state === 'HURT') {
             if (this.time.now > enemy.hurtTimer) {
                 enemy.state = 'CHASE'; 
-                enemy.stateTimer = this.time.now + 4000; 
+                enemy.stateTimer = this.time.now + Phaser.Math.Between(500, 1000);
             }
             return; 
         }
@@ -360,6 +386,7 @@ export default class MainScene extends Phaser.Scene {
         let minDistance = Infinity;
 
         this.players.forEach(player => {
+            if (player.isDead) return;
             let dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
             if (dist < minDistance) {
                 minDistance = dist;

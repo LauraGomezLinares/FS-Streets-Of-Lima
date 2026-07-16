@@ -106,6 +106,21 @@ function setupSocket(io) {
         socket.to(`lobby:${socket.currentLobby}`).emit("game:player_took_damage", data);
     });
 
+    // Votación de reinicio de partida
+    socket.on("game:vote_restart", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:vote_restart", data);
+    });
+
+    // Reiniciar la escena
+    socket.on("game:do_restart", () => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:do_restart");
+    });
+
+    // Orden de destruir el juego y volver al lobby
+    socket.on("game:return_lobby", () => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:return_lobby");
+    });
+
     socket.on("disconnect", () => {
       if (socket.user && socket.currentLobby) {
         // Le avisamos a todos los que sigan en esa sala que este usuario se voló
