@@ -205,12 +205,12 @@ async function resendOtp(req, res) {
   }
 }
 
-// GET /users/me -> Recuperación de perfil en sesión (Requiere JWT válido previo)
+// GET /users/me -> Recuperación de perfil en sesión
 async function me(req, res) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      include: { battlePassProgress: true }, // Consistente con el modelo cascade
+      include: { battlePassProgress: true }, 
     });
     if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
 
@@ -220,9 +220,10 @@ async function me(req, res) {
       email: user.email,
       role: user.role,
       battlePass: user.battlePassProgress,
+      totalPlaySeconds: user.totalPlaySeconds, 
       sunnys: user.sunnys,
-      unlockedSkills: user.unlockedSkills,
       skillPoints: user.skillPoints,
+      unlockedSkills: user.unlockedSkills
     });
   } catch (err) {
     console.error(err);

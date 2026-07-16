@@ -185,7 +185,7 @@ export default class MainScene extends Phaser.Scene {
 
     this.cameraTarget = this.add.zone(0, 0, 1, 1);
     this.cameras.main.startFollow(this.cameraTarget, true, 0.1, 0.1);
-    this.cameras.main.setBounds(0, 0, 3000, 720);
+    this.cameras.main.setBounds(0, 0, 15000, 720);
   }
 
     triggerWin() {
@@ -235,14 +235,13 @@ export default class MainScene extends Phaser.Scene {
 
       this.ambushCount++;
 
-      // 🔥 SI ES LA TERCERA EMBOSCADA: JEFE
-      if (this.ambushCount === 3) {
+        if (this.ambushCount === 4) {
           if (this.goArrow) { this.goArrow.destroy(); this.goArrow = null; }
           const bossId = 'boss_' + Date.now();
           this.createBoss(bossId, lockX + 1000, 360);
           this.registry.get('socket').emit("game:spawn_enemy", { id: bossId, x: lockX + 1000, y: 360, isBoss: true });
           return;
-      }
+        }
 
       // EMBOSCADA NORMAL
       this.totalEnemiesToSpawn = 4 + ((this.players.length - 1) * 3);
@@ -267,7 +266,7 @@ export default class MainScene extends Phaser.Scene {
 
   clearAmbush() {
       this.isLocked = false;
-      this.cameras.main.setBounds(0, 0, 3000, 720);
+      this.cameras.main.setBounds(0, 0, 15000, 720);
       this.nextAmbushX = this.cameraTarget.x + 1200;
       const camX = this.cameras.main.scrollX;
       this.goArrow = this.add.sprite(camX + 1150, 360, 'arrow');
@@ -287,6 +286,7 @@ export default class MainScene extends Phaser.Scene {
   createBoss(id, x, y) {
       const boss = this.add.sprite(x, y, 'boss_idle');
       boss.id = id; 
+      boss.setScale(1.5);
       boss.hp = 60 + (this.players.length * 20); // Mucha Vida!
       boss.activeStatus = true; 
       boss.isBoss = true;
@@ -479,7 +479,7 @@ export default class MainScene extends Phaser.Scene {
 
         this.myPlayer.y = Phaser.Math.Clamp(this.myPlayer.y, 150, 680); 
         if (this.isLocked) this.myPlayer.x = Phaser.Math.Clamp(this.myPlayer.x, camX + 30, camX + 1250);
-        else this.myPlayer.x = Phaser.Math.Clamp(this.myPlayer.x, 30, 2970); 
+        else this.myPlayer.x = Phaser.Math.Clamp(this.myPlayer.x, 30, 14970);
 
         if (moved) socket.emit("game:move", { userId: myUserId, x: this.myPlayer.x, y: this.myPlayer.y });
       }
@@ -546,8 +546,8 @@ export default class MainScene extends Phaser.Scene {
                     const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, enemy.wanderTarget.x, enemy.wanderTarget.y);
                     if (dist > 15) {
                         const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, enemy.wanderTarget.x, enemy.wanderTarget.y);
-                        enemy.x += Math.cos(angle) * 1.2;
-                        enemy.y += Math.sin(angle) * 1.2;
+                        enemy.x += Math.cos(angle) * 0.7;
+                        enemy.y += Math.sin(angle) * 0.7;
                     }
                 }
                 return; // Evita que ejecute la lógica de los enemigos normales
