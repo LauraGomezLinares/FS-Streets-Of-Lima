@@ -7,6 +7,12 @@ export default class MainScene extends Phaser.Scene {
 
   preload() {
     const g = this.make.graphics({ x: 0, y: 0, add: false });
+
+    this.load.audio('bg_music', '/Audio/background_music.mp3');
+    this.load.audio('boss_music', '/Audio/boss_music.mp3');
+    this.load.audio('sfx_j', '/Audio/j_key.mp3');
+    this.load.audio('sfx_k', '/Audio/k_key.mp3');
+    this.load.audio('sfx_damage', '/Audio/taking_damage.mp3');
     
     this.load.spritesheet('profe_idle', '/assets/characters/SpritesProfe/Profe-Idle.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('profe_walk', '/assets/characters/SpritesProfe/Profe-Walk.png', { frameWidth: 32, frameHeight: 32 });
@@ -112,14 +118,22 @@ export default class MainScene extends Phaser.Scene {
     this.scene.launch("UIScene", { slots: slots });
 
     this.chargeEmitter = this.add.particles(0, 0, 'charge_particle', {
-        speed: { min: -40, max: -80 }, // Van hacia arriba
+        speed: { min: -40, max: -80 },
         angle: { min: 220, max: 320 },
         scale: { start: 1.5, end: 0 },
         lifespan: 500,
         blendMode: 'ADD',
-        emitting: false // Inicia apagado
+        emitting: false 
     });
-    this.chargeEmitter.setDepth(20);
+    // Profundidad -1 para que se renderice DETRÁS del jugador
+    this.chargeEmitter.setDepth(-1);
+
+    this.bgMusic = this.sound.add('bg_music', { volume: 0.3, loop: true });
+    this.bossMusic = this.sound.add('boss_music', { volume: 0.4, loop: true });
+
+    if (!this.bgMusic.isPlaying) {
+        this.bgMusic.play();
+    }
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys({
@@ -235,6 +249,10 @@ export default class MainScene extends Phaser.Scene {
       const pSprite = this.players.find(p => p.id === userId);
       if (!pSprite || pSprite.isDead || pSprite.isShielded) return;
 
+      if (userId === this.registry.get('myId')) {
+          this.sound.play('sfx_damage', { volume: 0.9 });
+      }
+
       pSprite.hp -= amount;
       if (pSprite.hp <= 0) {
           pSprite.hp = 0; pSprite.isDead = true; pSprite.setTint(0x333333);
@@ -333,6 +351,14 @@ export default class MainScene extends Phaser.Scene {
   //  Función para crear al Boss
   createBoss(id, x, y) {
       const boss = this.add.sprite(x, y, 'boss_idle');
+
+      if (this.bgMusic && this.bgMusic.isPlaying) {
+          this.bgMusic.stop(); // Detenemos la música normal
+      }
+      if (this.bossMusic && !this.bossMusic.isPlaying) {
+          this.bossMusic.play(); // Iniciamos la del Boss
+      }
+      
       boss.id = id; 
       boss.setScale(1.5);
       boss.hp = 15 + (this.players.length * 5); // Mucha Vida!
@@ -490,7 +516,7 @@ export default class MainScene extends Phaser.Scene {
                   this.myPlayer.setTexture('profe_punch', 0);
                   
                   // Prendemos partículas azules
-                  this.chargeEmitter.startFollow(this.myPlayer, 0, 15); // Enganchado a los pies
+                  this.chargeEmitter.startFollow(this.myPlayer, 0, 60); 
                   this.chargeEmitter.start();
               }
 
@@ -539,6 +565,12 @@ export default class MainScene extends Phaser.Scene {
               
               this.myPlayer.play(animName); 
               socket.emit("game:attack", { userId: myUserId, anim: animName });
+
+              if (animName === 'anim_punch') {
+                  this.sound.play('sfx_j', { volume: 0.8 });
+              } else if (animName === 'anim_kick') {
+                  this.sound.play('sfx_k', { volume: 0.8 });
+              }
 
               this.enemies.forEach(enemy => {
                   const isFacingRight = this.lastDir.x >= 0;
