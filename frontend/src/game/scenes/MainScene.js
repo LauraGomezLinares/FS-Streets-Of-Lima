@@ -13,6 +13,7 @@ export default class MainScene extends Phaser.Scene {
     this.load.audio('sfx_j', '/Audio/j_key.mp3');
     this.load.audio('sfx_k', '/Audio/k_key.mp3');
     this.load.audio('sfx_damage', '/Audio/taking_damage.mp3');
+    this.load.audio('sfx_arrow', '/Audio/flecha.mp3');
     
     this.load.spritesheet('profe_idle', '/assets/characters/SpritesProfe/Profe-Idle.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('profe_walk', '/assets/characters/SpritesProfe/Profe-Walk.png', { frameWidth: 32, frameHeight: 32 });
@@ -314,6 +315,7 @@ export default class MainScene extends Phaser.Scene {
       const camX = this.cameras.main.scrollX;
       this.goArrow = this.add.sprite(camX + 1150, 360, 'arrow');
       this.tweens.add({ targets: this.goArrow, x: this.goArrow.x + 20, duration: 400, yoyo: true, repeat: -1 });
+      this.sound.play('sfx_arrow', { volume: 0.8 });
 
       // Mecánica de Revivir Compañeros Caídos
       this.players.forEach(p => {
@@ -358,7 +360,7 @@ export default class MainScene extends Phaser.Scene {
       if (this.bossMusic && !this.bossMusic.isPlaying) {
           this.bossMusic.play(); // Iniciamos la del Boss
       }
-      
+
       boss.id = id; 
       boss.setScale(1.5);
       boss.hp = 15 + (this.players.length * 5); // Mucha Vida!
