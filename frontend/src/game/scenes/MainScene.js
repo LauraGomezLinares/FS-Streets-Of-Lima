@@ -220,7 +220,7 @@ export default class MainScene extends Phaser.Scene {
       this.registry.get('socket').emit("game:trigger_ambush", { lockX });
 
       //  6 enemigos base
-      this.totalEnemiesToSpawn = 6 + ((this.players.length - 1) * 3);
+      this.totalEnemiesToSpawn = 4 + ((this.players.length - 1) * 3);
       this.spawnedEnemiesCount = 0;
 
       if (this.goArrow) { this.goArrow.destroy(); this.goArrow = null; }
