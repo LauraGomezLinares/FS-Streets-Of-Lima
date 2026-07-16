@@ -221,6 +221,7 @@ async function me(req, res) {
       role: user.role,
       battlePass: user.battlePassProgress,
       sunnys: user.sunnys,
+      unlockedSkills: user.unlockedSkills,
       skillPoints: user.skillPoints,
     });
   } catch (err) {
@@ -246,4 +247,30 @@ async function checkRole(req, res) {
   }
 }
 
-module.exports = { register, login, verifyOtp, resendOtp, me, savePlaytime, checkRole };
+async function buySkill(req, res) {
+  try {
+    const { skillId, cost } = req.body;
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+
+    if (user.skillPoints < cost) return res.status(400).json({ error: "Puntos insuficientes." });
+    if (user.unlockedSkills.includes(skillId)) return res.status(400).json({ error: "Ya tienes esta habilidad." });
+
+    // Restamos el costo y guardamos el nombre de la habilidad en su cuenta
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        skillPoints: { decrement: cost },
+        unlockedSkills: { push: skillId }
+      },
+      // Devolvemos el perfil actualizado
+      select: { id: true, username: true, email: true, role: true, sunnys: true, skillPoints: true, unlockedSkills: true }
+    });
+
+    res.json(updatedUser);
+  } catch (error) {
+    console.error("Error comprando habilidad:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+}
+
+module.exports = { register, login, verifyOtp, resendOtp, me, savePlaytime, checkRole, buySkill };

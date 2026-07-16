@@ -49,6 +49,8 @@ export default function GameWindow({ onLeave }) {
     if (user && user.id) game.registry.set('myId', user.id); 
     game.registry.set('setGameOver', setIsGameOver); 
 
+    game.registry.set('unlockedSkills', user?.unlockedSkills || []);
+
     const handleVote = (data) => setVotes(prev => [...new Set([...prev, data.userId])]);
     
     // Escuchar el reinicio global desde el servidor

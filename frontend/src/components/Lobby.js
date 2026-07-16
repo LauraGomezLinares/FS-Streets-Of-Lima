@@ -7,7 +7,7 @@ import faceSprite from '../assets/FaceSprite.png';
 import idleGif from '../assets/PlaceholderPersonajeIdle.gif';
 
 export default function Lobby() {
-    const { user, socket, triggerToast, setIsProfileOpen } = useAuth();
+    const { user, socket, token, setUser, triggerToast, setIsProfileOpen } = useAuth();
     const { slots } = useLobby(); 
     const [isSkillTreeOpen, setIsSkillTreeOpen] = useState(false);
 
@@ -38,6 +38,33 @@ export default function Lobby() {
         if (action === "skills") setIsSkillTreeOpen(!isSkillTreeOpen);
         if (action === "invite") setIsProfileOpen(true); 
     };
+
+    // Función para comprar habilidades
+    const handleBuySkill = async (skillId, cost) => {
+        if (!user) return triggerToast("DEBES INICIAR SESIÓN");
+        if (user.skillPoints < cost) return triggerToast("PUNTOS INSUFICIENTES");
+
+        try {
+            const res = await fetch(`https://fs-streets-of-lima-backend.onrender.com/auth/buy-skill`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ skillId, cost })
+            });
+            if (res.ok) {
+                const updatedUser = await res.json();
+                setUser({ ...user, ...updatedUser }); // Actualiza todo el entorno visual
+                localStorage.setItem("sol_user", JSON.stringify({ ...user, ...updatedUser }));
+                triggerToast("¡HABILIDAD DESBLOQUEADA!");
+            } else {
+                const err = await res.json();
+                triggerToast(err.error);
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    // Para saber fácilmente si ya las compramos:
+    const hasDash = user?.unlockedSkills?.includes('DASH');
+    const hasHeavy = user?.unlockedSkills?.includes('HEAVY');
 
     const handleMainButton = () => {
         if (!user) return triggerToast("LOG IN TO PLAY!");
@@ -171,17 +198,26 @@ export default function Lobby() {
                     </div>
 
                     {isSkillTreeOpen && (
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-3"> 
+                            
                             <div className="text-[10px] text-zinc-500 mb-2">
                                 AVAILABLE POINTS: {user?.skillPoints || 0}
                             </div>
                             
-                            <button className="bg-zinc-900 border border-zinc-700 hover:border-yellow-400 text-zinc-400 hover:text-yellow-400 py-3 text-[10px] tracking-widest transition-colors text-left px-4">
-                                [+] DASH MASTERY
+                            <button 
+                                onClick={() => !hasDash && handleBuySkill('DASH', 1)}
+                                className={`py-3 text-[10px] tracking-widest text-left px-4 transition-colors border ${hasDash ? 'bg-yellow-400/20 border-yellow-400 text-yellow-400 cursor-default' : 'bg-zinc-900 border-zinc-700 hover:border-yellow-400 text-zinc-400 hover:text-yellow-400 cursor-pointer'}`}
+                            >
+                                {hasDash ? '[✔] DASH MASTERY' : '[1 PT] DASH MASTERY'}
                             </button>
-                            <button className="bg-zinc-900 border border-zinc-700 hover:border-yellow-400 text-zinc-400 hover:text-yellow-400 py-3 text-[10px] tracking-widest transition-colors text-left px-4">
-                                [+] HEAVY PUNCH
+
+                            <button 
+                                onClick={() => !hasHeavy && handleBuySkill('HEAVY', 3)}
+                                className={`py-3 text-[10px] tracking-widest text-left px-4 transition-colors border ${hasHeavy ? 'bg-yellow-400/20 border-yellow-400 text-yellow-400 cursor-default' : 'bg-zinc-900 border-zinc-700 hover:border-yellow-400 text-zinc-400 hover:text-yellow-400 cursor-pointer'}`}
+                            >
+                                {hasHeavy ? '[✔] HEAVY PUNCH' : '[3 PT] HEAVY PUNCH'}
                             </button>
+
                         </div>
                     )}
                 </div>

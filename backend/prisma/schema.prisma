@@ -43,6 +43,8 @@ model User {
   unlockedAvatars   String[]  @default([])
   xpBoostMultiplier Float     @default(1.0)
   xpBoostEndsAt     DateTime?
+
+  unlockedSkills    String[]  @default([])
 }
 
 model Character {
