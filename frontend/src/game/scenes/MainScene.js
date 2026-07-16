@@ -30,18 +30,11 @@ export default class MainScene extends Phaser.Scene {
 
     g.fillStyle(0x888888, 1);
     g.fillCircle(30, 30, 30);
-    g.generateTexture('enemy', 60, 60);
-    g.clear();
-
-    // Textura Enemigo Atacando Pesado (Núcleo Rojo)
-    g.fillStyle(0x888888, 1);
-    g.fillCircle(30, 30, 30);
     g.fillStyle(0xff0000, 1);
     g.fillCircle(30, 30, 15); 
     g.generateTexture('enemy_atk', 60, 60);
     g.clear();
 
-    // Textura Enemigo Atacando Rápido (Núcleo Amarillo)
     g.fillStyle(0x888888, 1);
     g.fillCircle(30, 30, 30);
     g.fillStyle(0xffff00, 1);
@@ -62,7 +55,7 @@ export default class MainScene extends Phaser.Scene {
     this.myPlayer = null;  
     
     this.isAttacking = false; 
-    this.isStunned = false;
+    this.isStunned = false; 
     
     this.isLocked = false; 
     this.enemies = [];     
@@ -72,9 +65,10 @@ export default class MainScene extends Phaser.Scene {
     slots.forEach((playerData, index) => {
       if (playerData) {
         const playerSprite = this.add.sprite(200 + (index * 100), 300, 'idle');
+        
         playerSprite.id = playerData.id;
         playerSprite.hp = 100; 
-        playerSprite.originalTint = colors[index]; // Guardamos su color original
+        playerSprite.originalTint = colors[index]; 
         
         playerSprite.setTint(playerSprite.originalTint); 
         this.physics.add.existing(playerSprite);
@@ -102,6 +96,7 @@ export default class MainScene extends Phaser.Scene {
         j: Phaser.Input.Keyboard.KeyCodes.J, k: Phaser.Input.Keyboard.KeyCodes.K
     });
 
+    // ESCUCHADORES DE RED
     socket.on("game:player_moved", (data) => {
         const remoteSprite = this.remotePlayers[data.userId];
         if (remoteSprite) { remoteSprite.x = data.x; remoteSprite.y = data.y; }
@@ -124,16 +119,29 @@ export default class MainScene extends Phaser.Scene {
         this.damageEnemy(data.enemyId);
     });
 
+    //  Manejador de Fases Visuales para el Cliente
     socket.on("game:enemy_attacked", (data) => {
         const enemy = this.enemies.find(e => e.id === data.enemyId);
-        if (enemy) {
-            const texture = data.type === 'FAST' ? 'enemy_atk_fast' : 'enemy_atk';
-            const delay = data.type === 'FAST' ? 200 : 600;
+        if (enemy && enemy.activeStatus) {
             
-            enemy.setTexture(texture);
-            this.time.delayedCall(delay, () => {
-                if (enemy.activeStatus) enemy.setTexture('enemy');
-            });
+            // FASE 1: Se prendió el núcleo (Cargando)
+            if (data.phase === 'WINDUP') {
+                const texture = data.type === 'FAST' ? 'enemy_atk_fast' : 'enemy_atk';
+                enemy.setTexture(texture);
+            } 
+            // FASE 2: Soltó el golpe (La embestida)
+            else if (data.phase === 'ATTACK') {
+                this.tweens.add({
+                    targets: enemy,
+                    x: data.targetX,
+                    y: data.targetY,
+                    duration: 100, // Salto súper rápido
+                    onComplete: () => {
+                        // Al terminar el golpe, apaga la luz
+                        if (enemy.activeStatus) enemy.setTexture('enemy');
+                    }
+                });
+            }
         }
     });
 
@@ -144,8 +152,35 @@ export default class MainScene extends Phaser.Scene {
     this.cameraTarget = this.add.zone(0, 0, 1, 1);
     this.cameras.main.startFollow(this.cameraTarget, true, 0.1, 0.1);
     this.cameras.main.setBounds(0, 0, 3000, 720);
-    }
+  }
+
+  // SISTEMAS DE DAÑO
   
+  damagePlayer(userId, amount, stunDuration = 0) {
+      const pSprite = this.players.find(p => p.id === userId);
+      if (!pSprite) return;
+
+      pSprite.hp -= amount;
+      if (pSprite.hp < 0) pSprite.hp = 0;
+
+      pSprite.setTint(0xff0000);
+      this.time.delayedCall(150, () => {
+          pSprite.setTint(pSprite.originalTint);
+      });
+
+      this.events.emit("update_hp", { userId: userId, hpPercent: pSprite.hp / 100 });
+
+      if (userId === this.registry.get('myId')) {
+          this.isStunned = true;
+          pSprite.setAlpha(0.5); 
+          
+          this.time.delayedCall(stunDuration, () => {
+              this.isStunned = false;
+              pSprite.setAlpha(1); 
+          });
+      }
+  }
+
   lockCamera(lockX) {
       this.isLocked = true;
       this.cameras.main.setBounds(lockX, 0, 1280, 720);
@@ -164,8 +199,6 @@ export default class MainScene extends Phaser.Scene {
           callback: () => {
               const spawnLeft = Math.random() > 0.5;
               const spawnX = spawnLeft ? lockX - 80 : lockX + 1280 + 80;
-              
-              // 🔥 NUEVO: Los enemigos nacen en todo el rango del suelo (150 a 680)
               const spawnY = Phaser.Math.Between(150, 680);
               const enemyId = 'enemy_' + Date.now() + Math.random();
 
@@ -191,12 +224,11 @@ export default class MainScene extends Phaser.Scene {
       enemy.offsetX = offsetX;
       enemy.offsetY = offsetY;
       
-      // 🔥 NUEVO: Reloj interno para IA
       enemy.state = 'CHASE'; 
-      enemy.stateTimer = this.time.now + Phaser.Math.Between(3000, 5000); // 3 a 5 segs iniciales
+      enemy.stateTimer = this.time.now + Phaser.Math.Between(3000, 5000); 
       enemy.wanderTarget = null;
       enemy.hurtTimer = 0;
-
+      
       enemy.attackType = 'HEAVY';
 
       this.enemies.push(enemy);
@@ -210,6 +242,9 @@ export default class MainScene extends Phaser.Scene {
       
       enemy.state = 'HURT';
       enemy.hurtTimer = this.time.now + 600; 
+      
+      // Si lo golpeas mientras cargaba un ataque, la luz se apaga y se cancela
+      enemy.setTexture('enemy');
       
       enemy.x += (enemy.offsetX > 0 ? 15 : -15); 
 
@@ -227,33 +262,6 @@ export default class MainScene extends Phaser.Scene {
       }
   }
 
-    damagePlayer(userId, amount, stunDuration = 0) {
-      const pSprite = this.players.find(p => p.id === userId);
-      if (!pSprite) return;
-
-      pSprite.hp -= amount;
-      if (pSprite.hp < 0) pSprite.hp = 0;
-
-      // Parpadeo de daño
-      pSprite.setTint(0xff0000);
-      this.time.delayedCall(150, () => {
-          pSprite.setTint(pSprite.originalTint);
-      });
-
-      this.events.emit("update_hp", { userId: userId, hpPercent: pSprite.hp / 100 });
-
-      // Si el golpe me dio A MÍ, aplico las penalizaciones de Stun locales
-      if (userId === this.registry.get('myId')) {
-          this.isStunned = true;
-          pSprite.setAlpha(0.5); // Efecto visual: se vuelve fantasma al estar aturdido
-          
-          this.time.delayedCall(stunDuration, () => {
-              this.isStunned = false;
-              pSprite.setAlpha(1); // Vuelve a la normalidad
-          });
-      }
-    }
-
   update() {
     const socket = this.registry.get('socket');
     const myUserId = this.registry.get('myId');
@@ -263,8 +271,6 @@ export default class MainScene extends Phaser.Scene {
     }
 
     if (this.myPlayer) {
-      
-      // Bloqueamos las acciones si está Aturdido
       if (!this.isAttacking && !this.isStunned) {
         let attacked = false;
         let textureName = '';
@@ -292,7 +298,6 @@ export default class MainScene extends Phaser.Scene {
         }
       }
 
-      // Bloqueamos el movimiento si está Aturdido
       if (!this.isAttacking && !this.isStunned) {
         const speed = 5;
         let moved = false;
@@ -325,7 +330,7 @@ export default class MainScene extends Phaser.Scene {
       this.cameraTarget.y = 360; 
     }
 
-    // Enemigos IA
+    // IA ENEMIES
     const camX = this.cameras.main.scrollX;
 
     this.enemies.forEach(enemy => {
@@ -339,7 +344,7 @@ export default class MainScene extends Phaser.Scene {
             return; 
         }
 
-        // RELOJ DE ESTADOS BÁSICOS
+        // RELOJ DE ESTADOS DE NAVEGACIÓN
         if (this.time.now > enemy.stateTimer && (enemy.state === 'CHASE' || enemy.state === 'WANDER')) {
             if (enemy.state === 'CHASE') {
                 enemy.state = 'WANDER';
@@ -366,20 +371,19 @@ export default class MainScene extends Phaser.Scene {
             const targetX = closestPlayer.x + enemy.offsetX;
             const targetY = closestPlayer.y + enemy.offsetY;
             const distToTarget = Phaser.Math.Distance.Between(enemy.x, enemy.y, targetX, targetY);
-            const distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, closestPlayer.x, closestPlayer.y);
 
-            // ESTADO DE CARGA DINÁMICO
+            // PREPARA EL GOLPE (WINDUP)
             if (enemy.state === 'WINDUP') {
                 if (this.time.now > enemy.stateTimer) {
                     enemy.state = 'ATTACK';
                 }
             } 
-            // EJECUCIÓN DEL ATAQUE
+            // SUELTA EL GOLPE
             else if (enemy.state === 'ATTACK') {
+                const distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, closestPlayer.x, closestPlayer.y);
                 
-                // Si el jugador no huyó a tiempo, recibe el golpe
-                if (distToPlayer < 60) {
-                    // Calculamos daño y stun dependiendo del tipo
+                // Si el jugador no esquivó a tiempo (Radio ampliado a 75), recibe daño
+                if (distToPlayer < 75) {
                     const damageAmt = enemy.attackType === 'FAST' ? 5 : 15;
                     const stunTime = enemy.attackType === 'FAST' ? 300 : 800;
 
@@ -389,45 +393,64 @@ export default class MainScene extends Phaser.Scene {
                     });
                 }
                 
-                // Avisamos a todos qué ataque se hizo para que dibujen el núcleo de color
+                // Embestida visual (Lunge) hacia la última posición del jugador
+                const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, closestPlayer.x, closestPlayer.y);
+                const lungeX = enemy.x + Math.cos(angle) * 20;
+                const lungeY = enemy.y + Math.sin(angle) * 20;
+
+                this.tweens.add({
+                    targets: enemy,
+                    x: lungeX, y: lungeY,
+                    duration: 100,
+                    onComplete: () => {
+                        if (enemy.activeStatus) enemy.setTexture('enemy');
+                    }
+                });
+                
+                // Avisa a todos que suelten el golpe
                 this.registry.get('socket').emit("game:enemy_attack", { 
-                    enemyId: enemy.id, type: enemy.attackType 
+                    enemyId: enemy.id, type: enemy.attackType, phase: 'ATTACK', targetX: lungeX, targetY: lungeY
                 });
                 
                 enemy.state = 'RECOVER';
-                enemy.stateTimer = this.time.now + (enemy.attackType === 'FAST' ? 500 : 1000);
+                enemy.stateTimer = this.time.now + (enemy.attackType === 'FAST' ? 600 : 1200);
             } 
-            // RECUPERACIÓN POST-ATAQUE
+            // RECUPERACIÓN Y REUBICACIÓN
             else if (enemy.state === 'RECOVER') {
                 if (this.time.now > enemy.stateTimer) {
-                    enemy.setTexture('enemy');
+                    // Terminó el ataque y su descanso: Obligamos a que se mueva a un flanco o busque otro ángulo
                     enemy.state = 'WANDER'; 
-                    enemy.stateTimer = this.time.now + 1000;
+                    enemy.stateTimer = this.time.now + Phaser.Math.Between(1500, 3000);
+                    enemy.wanderTarget = null;
                 }
             } 
-            // PERSECUCIÓN Y DECISIÓN DE ATAQUE
+            // PERSECUCIÓN
             else if (enemy.state === 'CHASE') {
+                const distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, closestPlayer.x, closestPlayer.y);
                 
-                // IA DECIDE QUÉ ATAQUE USAR
-                if (distToPlayer < 50) {
+                // Si entra en rango, empieza a preparar el ataque
+                if (distToPlayer < 65) {
                     enemy.state = 'WINDUP';
-                    
-                    // 50% de probabilidad de lanzar ataque rápido o pesado
                     enemy.attackType = Math.random() > 0.5 ? 'FAST' : 'HEAVY';
                     
-                    // Configuramos los tiempos y la apariencia
-                    const reactionTime = enemy.attackType === 'FAST' ? 200 : 600;
+                    const reactionTime = enemy.attackType === 'FAST' ? 300 : 700;
                     enemy.stateTimer = this.time.now + reactionTime;
+                    
+                    // Host prende la luz
                     enemy.setTexture(enemy.attackType === 'FAST' ? 'enemy_atk_fast' : 'enemy_atk');
+                    
+                    // Avisa a los clientes que se PRENDIÓ LA LUZ
+                    this.registry.get('socket').emit("game:enemy_attack", { 
+                        enemyId: enemy.id, type: enemy.attackType, phase: 'WINDUP'
+                    });
                 }
-                // Si aún no está en rango, camina al flanco
                 else if (distToTarget > 15) {
                     const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, targetX, targetY);
                     enemy.x += Math.cos(angle) * enemy.speed;
                     enemy.y += Math.sin(angle) * enemy.speed;
                 }
             } 
-            // MERODEO
+            //  MERODEO
             else if (enemy.state === 'WANDER') {
                 if (!enemy.wanderTarget) {
                     enemy.wanderTarget = {
