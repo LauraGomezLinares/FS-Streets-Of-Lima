@@ -292,7 +292,7 @@ export default class MainScene extends Phaser.Scene {
       enemy.hp -= 1;
       
       enemy.state = 'HURT';
-      enemy.hurtTimer = this.time.now + 150;
+      enemy.hurtTimer = this.time.now + 200;
       enemy.setTexture('enemy');
       
       enemy.x += (enemy.offsetX > 0 ? 15 : -15); 
@@ -502,7 +502,7 @@ export default class MainScene extends Phaser.Scene {
                     enemy.state = 'WINDUP';
                     enemy.attackType = Math.random() > 0.5 ? 'FAST' : 'HEAVY';
                     
-                    const reactionTime = enemy.attackType === 'FAST' ? 0 : 350;
+                    const reactionTime = enemy.attackType === 'FAST' ? 50 : 350;
                     enemy.stateTimer = this.time.now + reactionTime;
                     
                     enemy.setTexture(enemy.attackType === 'FAST' ? 'enemy_atk_fast' : 'enemy_atk');
