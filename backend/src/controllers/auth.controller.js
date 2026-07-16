@@ -196,14 +196,14 @@ async function resendOtp(req, res) {
 // GET /users/me -> Recuperación de perfil en sesión
 async function me(req, res) {
   try {
-    // 🔥 CORREGIDO: El nombre exacto de la relación es battlePass
+    //  El nombre exacto de la relación es battlePass
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
       include: { battlePass: true },
     });
     if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
 
-    // 🔥 CORREGIDO: Mapeamos user.battlePass
+    //  Mapeamos user.battlePass
     return res.json({
       id: user.id,
       username: user.username,
@@ -260,4 +260,18 @@ async function buySkill(req, res) {
     }
 }
 
-module.exports = { register, login, verifyOtp, resendOtp, me, savePlaytime, checkRole, buySkill };
+async function getLeaderboard(req, res) {
+  try {
+    const topUsers = await prisma.user.findMany({
+      orderBy: { totalPlaySeconds: 'desc' },
+      take: 5,
+      select: { id: true, username: true, totalPlaySeconds: true }
+    });
+    res.json(topUsers);
+  } catch (error) {
+    console.error("Error obteniendo leaderboard:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+}
+
+module.exports = { register, login, verifyOtp, resendOtp, me, savePlaytime, checkRole, buySkill, getLeaderboard };

@@ -12,12 +12,30 @@ export default function Lobby() {
     const [isSkillTreeOpen, setIsSkillTreeOpen] = useState(false);
 
     const [isPlaying, setIsPlaying] = useState(false);
-
     const [amIReady, setAmIReady] = useState(false);
+
+    //  Estado del ranking global
+    const [leaderboard, setLeaderboard] = useState([]);
 
     const isHost = slots[0]?.id === user?.id;
     const guests = slots.filter(s => s && !s.isHost);
     const allReady = guests.length > 0 ? guests.every(s => s.isReady) : true;
+
+    //  Efecto para cargar el Leaderboard al entrar al Lobby
+    useEffect(() => {
+        fetch("https://fs-streets-of-lima-backend.onrender.com/auth/leaderboard")
+            .then(res => res.json())
+            .then(data => setLeaderboard(data))
+            .catch(err => console.error("Error cargando ranking:", err));
+    }, []);
+
+    //  Convertidor de segundos a Horas y Minutos
+    const formatTime = (seconds) => {
+        if (!seconds) return "0h 0m";
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        return `${h}h ${m}m`;
+    };
 
     useEffect(() => {
         if (!socket) return;
@@ -102,31 +120,32 @@ export default function Lobby() {
             
             <div className="col-span-1 bg-[#111] border border-zinc-800 rounded p-4 shadow-2xl flex flex-col h-[500px]">
                 <h2 className="text-yellow-400 text-sm mb-4 text-center tracking-widest border-b border-zinc-800 pb-2">GLOBAL RANKING</h2>
+                
+                {/*  GLOBAL RANKING DINÁMICO */}
                 <div className="flex flex-col gap-3 overflow-y-auto pr-2">
-                    <div className="flex items-center justify-between bg-[#1a1a1a] p-2 rounded border border-yellow-500/30">
-                        <div className="flex items-center gap-2">
-                            <span className="text-yellow-500 text-xs">#1</span>
-                            <img src={faceSprite} alt="face" className="w-6 h-6 rendering-pixelated bg-zinc-800 rounded border border-zinc-600" />
-                            <span className="text-[9px] text-white">GSon</span>
-                        </div>
-                        <span className="text-[9px] text-zinc-400">9999 pts</span>
-                    </div>
-                    <div className="flex items-center justify-between bg-[#1a1a1a] p-2 rounded border border-zinc-800">
-                        <div className="flex items-center gap-2">
-                            <span className="text-zinc-400 text-xs">#2</span>
-                            <img src={faceSprite} alt="face" className="w-6 h-6 rendering-pixelated bg-zinc-800 rounded border border-zinc-600" />
-                            <span className="text-[9px] text-zinc-300">Natalia</span>
-                        </div>
-                        <span className="text-[9px] text-zinc-500">8500 pts</span>
-                    </div>
-                    <div className="flex items-center justify-between bg-[#1a1a1a] p-2 rounded border border-zinc-800">
-                        <div className="flex items-center gap-2">
-                            <span className="text-zinc-400 text-xs">#3</span>
-                            <img src={faceSprite} alt="face" className="w-6 h-6 rendering-pixelated bg-zinc-800 rounded border border-zinc-600" />
-                            <span className="text-[9px] text-zinc-300">CEGGAX</span>
-                        </div>
-                        <span className="text-[9px] text-zinc-500">7200 pts</span>
-                    </div>
+                    {leaderboard.length === 0 ? (
+                        <div className="text-[10px] text-zinc-500 text-center tracking-widest py-4">CARGANDO...</div>
+                    ) : (
+                        leaderboard.map((player, index) => (
+                            <div 
+                                key={player.id} 
+                                className={`flex items-center justify-between bg-[#1a1a1a] p-2 rounded border ${index === 0 ? 'border-yellow-500/30' : 'border-zinc-800'}`}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <span className={`${index === 0 ? 'text-yellow-500' : 'text-zinc-400'} text-xs`}>
+                                        #{index + 1}
+                                    </span>
+                                    <img src={faceSprite} alt="face" className="w-6 h-6 rendering-pixelated bg-zinc-800 rounded border border-zinc-600" />
+                                    <span className={`text-[9px] ${index === 0 ? 'text-white' : 'text-zinc-300'}`}>
+                                        {player.username}
+                                    </span>
+                                </div>
+                                <span className={`text-[9px] ${index === 0 ? 'text-zinc-400' : 'text-zinc-500'} lowercase`}>
+                                    {formatTime(player.totalPlaySeconds)}
+                                </span>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
 
@@ -150,7 +169,7 @@ export default function Lobby() {
                                     <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-[8px] px-1 rounded">P{index + 1}</div>
                                     <div className="absolute -bottom-5 text-[8px] text-yellow-400 tracking-widest uppercase truncate w-full text-center">{player.username}</div>
                                     
-                                    {/* 🔥 EL CHECK DE READY VERDE */}
+                                    {/*  EL CHECK DE READY VERDE */}
                                     {player.isReady && (
                                         <div className="absolute -bottom-2 -right-2 bg-green-500 rounded-full w-5 h-5 flex items-center justify-center border-2 border-[#111] shadow-[0_0_10px_rgba(34,197,94,0.6)]">
                                             <span className="text-black text-[10px] font-bold">✔</span>

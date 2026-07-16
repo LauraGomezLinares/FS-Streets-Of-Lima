@@ -15,5 +15,6 @@ router.get("/me", authMiddleware, authController.me);
 router.post("/save-playtime", authMiddleware, authController.savePlaytime);
 router.get("/role", authMiddleware, authController.checkRole);
 router.post("/buy-skill", authMiddleware, authController.buySkill);
+router.get("/leaderboard", authController.getLeaderboard);
 
 module.exports = router;
