@@ -8,6 +8,10 @@ export default class MainScene extends Phaser.Scene {
   preload() {
     const g = this.make.graphics({ x: 0, y: 0, add: false });
 
+    this.load.image('bg1', '/backgrounds/Escenario_UTP1.png');
+    this.load.image('bg2', '/backgrounds/Escenario_UTP2.jpeg');
+    this.load.image('bg3', '/backgrounds/Escenario_UTP3.jpeg');
+
     this.load.audio('bg_music', '/Audio/background_music.mp3');
     this.load.audio('boss_music', '/Audio/boss_music.mp3');
     this.load.audio('sfx_j', '/Audio/j_key.mp3');
@@ -286,8 +290,8 @@ export default class MainScene extends Phaser.Scene {
         if (this.ambushCount === 4) {
           if (this.goArrow) { this.goArrow.destroy(); this.goArrow = null; }
           const bossId = 'boss_' + Date.now();
-          this.createBoss(bossId, lockX + 1000, 580);
-          this.registry.get('socket').emit("game:spawn_enemy", { id: bossId, x: lockX + 1000, y: 580, isBoss: true });
+          this.createBoss(bossId, lockX + 1000, 550);
+            this.registry.get('socket').emit("game:spawn_enemy", { id: bossId, x: lockX + 1000, y: 550, isBoss: true });
           return;
         }
 
@@ -302,7 +306,7 @@ export default class MainScene extends Phaser.Scene {
               this.spawnedEnemiesCount++;
               const spawnLeft = Math.random() > 0.5;
               const spawnX = spawnLeft ? lockX - 80 : lockX + 1280 + 80;
-              const spawnY = Phaser.Math.Between(500, 710);
+              const spawnY = Phaser.Math.Between(420, 680);
               const enemyId = 'enemy_' + Date.now() + Math.random();
               const offsetX = (Math.random() * 40 + 60) * (spawnLeft ? -1 : 1); 
               const offsetY = (Math.random() * 60) - 30; 
@@ -318,7 +322,7 @@ export default class MainScene extends Phaser.Scene {
       this.nextAmbushX = this.cameraTarget.x + 1200;
       const camX = this.cameras.main.scrollX;
       
-      this.goArrow = this.add.sprite(camX + 1150, 580, 'arrow'); 
+        this.goArrow = this.add.sprite(camX + 1150, 550, 'arrow');
       this.tweens.add({ targets: this.goArrow, x: this.goArrow.x + 20, duration: 400, yoyo: true, repeat: -1 });
       this.sound.play('sfx_arrow', { volume: 0.8 });
 
@@ -494,7 +498,7 @@ export default class MainScene extends Phaser.Scene {
           this.tweens.add({
               targets: this.myPlayer,
               x: Phaser.Math.Clamp(targetX, this.isLocked ? camX + 30 : 30, this.isLocked ? camX + 1250 : 3810), 
-              y: Phaser.Math.Clamp(targetY, 500, 710),
+              y: Phaser.Math.Clamp(targetY, 420, 680),
               duration: 250, ease: 'Cubic.out',
               onUpdate: () => {
                   this.enemies.forEach(enemy => {
@@ -610,7 +614,7 @@ export default class MainScene extends Phaser.Scene {
         if (this.cursors.up.isDown || this.wasd.up.isDown) { this.myPlayer.y -= speed; moved = true; dy = -1; } 
         else if (this.cursors.down.isDown || this.wasd.down.isDown) { this.myPlayer.y += speed; moved = true; dy = 1; }
 
-        this.myPlayer.y = Phaser.Math.Clamp(this.myPlayer.y, 500, 710);
+        this.myPlayer.y = Phaser.Math.Clamp(this.myPlayer.y, 420, 680);
 
         if (dx !== 0 || dy !== 0) {
             this.lastDir = { x: dx, y: dy }; 
@@ -643,7 +647,7 @@ export default class MainScene extends Phaser.Scene {
                     enemy.summonTimer = this.time.now + 5000;
                     const eId = 'enemy_' + Date.now();
                     const sX = enemy.x + Phaser.Math.Between(-100, 100);
-                    const sY = Phaser.Math.Between(500, 710);
+                    const sY = Phaser.Math.Between(420, 680);
                     this.createEnemy(eId, sX, sY, (Math.random() * 40 + 60), (Math.random() * 60) - 30);
                     socket.emit("game:spawn_enemy", { id: eId, x: sX, y: sY, offsetX: enemy.offsetX, offsetY: enemy.offsetY });
                 }
@@ -680,7 +684,7 @@ export default class MainScene extends Phaser.Scene {
                         enemy.play('boss_walk_anim');
                         enemy.wanderTarget = {
                             x: Phaser.Math.Clamp(enemy.x + Phaser.Math.Between(-300, 300), camX + 50, camX + 1200),
-                            y: Phaser.Math.Between(500, 710)
+                            y: Phaser.Math.Between(420, 680)
                         };
                     }
                 }
