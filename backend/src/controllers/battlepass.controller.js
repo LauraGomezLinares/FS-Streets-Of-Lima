@@ -82,22 +82,23 @@ async function saveMatchXp(req, res) {
 
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      include: { battlePassProgress: true }
+      include: { battlePass: true } 
     });
 
-    if (!user || !user.battlePassProgress) return res.status(404).json({ error: "Progreso no encontrado." });
+    if (!user || !user.battlePass) return res.status(404).json({ error: "Progreso no encontrado." });
 
-    // Verificamos si tiene un Boost de XP activo de sus recompensas
+    // Verificamos si tiene un Boost de XP activo
     let multiplier = 1.0;
     if (user.xpBoostEndsAt && new Date() < new Date(user.xpBoostEndsAt)) {
       multiplier = user.xpBoostMultiplier || 1.0;
     }
 
-    // Calculamos la XP final y subimos de nivel si es necesario
+    // Calculamos la XP final
     const finalXp = Math.floor(xpToAdd * multiplier);
 
-    let newXp = user.battlePassProgress.xp + finalXp;
-    let newLevel = user.battlePassProgress.level;
+    // Usamos user.battlePass en lugar de user.battlePassProgress
+    let newXp = user.battlePass.xp + finalXp;
+    let newLevel = user.battlePass.level;
 
     while (newXp >= 1000) {
       newLevel += 1;
@@ -106,7 +107,7 @@ async function saveMatchXp(req, res) {
 
     // Guardamos en la base de datos
     await prisma.battlePassProgress.update({
-      where: { id: user.battlePassProgress.id },
+      where: { id: user.battlePass.id },
       data: { xp: newXp, level: newLevel }
     });
 

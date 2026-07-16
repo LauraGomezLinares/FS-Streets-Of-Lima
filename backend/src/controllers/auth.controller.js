@@ -126,10 +126,10 @@ async function verifyOtp(req, res) {
     const { userId, code } = req.body;
     if (!userId || !code) return res.status(400).json({ error: "Faltan parámetros obligatorios." });
 
-    // 🔥 AHORA: Incluimos el battlePass para que el inicio de sesión devuelva todo
+    // 🔥 CORREGIDO: El nombre exacto de la relación es battlePass
     const user = await prisma.user.findUnique({ 
         where: { id: userId },
-        include: { battlePassProgress: true } 
+        include: { battlePass: true } 
     });
     if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
 
@@ -149,7 +149,7 @@ async function verifyOtp(req, res) {
 
     const token = signToken(user);
     
-    // 🔥 AHORA: Retornamos el objeto COMPLETO del usuario al Frontend
+    // 🔥 CORREGIDO: Mapeamos user.battlePass
     return res.status(200).json({
       token,
       user: { 
@@ -157,7 +157,7 @@ async function verifyOtp(req, res) {
           username: user.username, 
           email: user.email, 
           role: user.role,
-          battlePass: user.battlePassProgress,
+          battlePass: user.battlePass,
           totalPlaySeconds: user.totalPlaySeconds, 
           sunnys: user.sunnys,
           skillPoints: user.skillPoints,           
@@ -196,19 +196,20 @@ async function resendOtp(req, res) {
 // GET /users/me -> Recuperación de perfil en sesión
 async function me(req, res) {
   try {
+    // 🔥 CORREGIDO: El nombre exacto de la relación es battlePass
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      include: { battlePassProgress: true },
+      include: { battlePass: true },
     });
     if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
 
-    // Enviamos la data completa en los refrescos de pantalla
+    // 🔥 CORREGIDO: Mapeamos user.battlePass
     return res.json({
       id: user.id,
       username: user.username,
       email: user.email,
       role: user.role,
-      battlePass: user.battlePassProgress,
+      battlePass: user.battlePass,
       totalPlaySeconds: user.totalPlaySeconds, 
       sunnys: user.sunnys,
       skillPoints: user.skillPoints,           
