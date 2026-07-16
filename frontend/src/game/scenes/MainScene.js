@@ -42,10 +42,9 @@ export default class MainScene extends Phaser.Scene {
     g.generateTexture('enemy_atk_fast', 60, 60);
     g.clear();
 
-    // 🔥 NUEVO: Textura de Flecha "GO!" (Estilo Arcade Pixel)
-    g.fillStyle(0xfacc15, 1); // color yellow-400
-    g.fillRect(10, 20, 30, 20); // Cola de la flecha
-    g.fillTriangle(40, 10, 40, 50, 60, 30); // Punta de la flecha
+    g.fillStyle(0xfacc15, 1); 
+    g.fillRect(10, 20, 30, 20); 
+    g.fillTriangle(40, 10, 40, 50, 60, 30); 
     g.generateTexture('arrow', 70, 60);
     g.clear();
   }
@@ -62,12 +61,13 @@ export default class MainScene extends Phaser.Scene {
     this.myPlayer = null;  
     
     this.isAttacking = false; 
+    // 🔥 NUEVO: Estado para evitar el spam de teclas
+    this.attackCooldown = false; 
     this.isStunned = false; 
     
     this.isLocked = false; 
     this.enemies = [];     
     
-    // Variables para controlar las emboscadas
     this.nextAmbushX = 1000; 
     this.totalEnemiesToSpawn = 0;
     this.spawnedEnemiesCount = 0;
@@ -110,7 +110,9 @@ export default class MainScene extends Phaser.Scene {
         j: Phaser.Input.Keyboard.KeyCodes.J, k: Phaser.Input.Keyboard.KeyCodes.K
     });
 
+    // =====================================
     // ESCUCHADORES DE RED
+    // =====================================
     socket.on("game:player_moved", (data) => {
         const remoteSprite = this.remotePlayers[data.userId];
         if (remoteSprite) { remoteSprite.x = data.x; remoteSprite.y = data.y; }
@@ -153,7 +155,6 @@ export default class MainScene extends Phaser.Scene {
         this.damagePlayer(data.userId, data.amount, data.stunDuration);
     });
 
-    // 🔥 NUEVO: Recibir aviso de que se liberó la zona
     socket.on("game:ambush_cleared", () => {
         this.clearAmbush();
     });
@@ -218,7 +219,8 @@ export default class MainScene extends Phaser.Scene {
       this.lockCamera(lockX);
       this.registry.get('socket').emit("game:trigger_ambush", { lockX });
 
-      this.totalEnemiesToSpawn = 4 + ((this.players.length - 1) * 3);
+      //  6 enemigos base
+      this.totalEnemiesToSpawn = 6 + ((this.players.length - 1) * 3);
       this.spawnedEnemiesCount = 0;
 
       if (this.goArrow) { this.goArrow.destroy(); this.goArrow = null; }
@@ -245,18 +247,15 @@ export default class MainScene extends Phaser.Scene {
       });
   }
 
-  // Función para desbloquear la cámara y mostrar la flecha
   clearAmbush() {
       this.isLocked = false;
+      
+      // debes caminar 1200 píxeles completos (1 pantalla) para que salga otra pelea
+      this.nextAmbushX = this.cameraTarget.x + 1200;
+
       const camX = this.cameras.main.scrollX;
-
-      // La próxima emboscada será 1500 píxeles más adelante
-      this.nextAmbushX = camX + 1500;
-
-      // Crear la flecha GO en la esquina derecha de la pantalla
       this.goArrow = this.add.sprite(camX + 1150, 360, 'arrow');
       
-      // Animación de rebote (adelante y atrás)
       this.tweens.add({
           targets: this.goArrow,
           x: this.goArrow.x + 20,
@@ -307,7 +306,6 @@ export default class MainScene extends Phaser.Scene {
               onComplete: () => {
                   enemy.destroy();
                   
-                  // EL HOST DECIDE SI SE ACABÓ LA EMBOSCADA
                   if (this.isHost && this.isLocked && this.spawnedEnemiesCount === this.totalEnemiesToSpawn) {
                       const allDead = this.enemies.every(e => !e.activeStatus);
                       if (allDead) {
@@ -328,13 +326,14 @@ export default class MainScene extends Phaser.Scene {
     const socket = this.registry.get('socket');
     const myUserId = this.registry.get('myId');
 
-    // El host usa "nextAmbushX" para saber cuándo lanzar la siguiente
     if (this.isHost && !this.isLocked && this.cameraTarget.x > this.nextAmbushX) {
         this.startAmbush();
     }
 
     if (this.myPlayer && !this.myPlayer.isDead) {
-      if (!this.isAttacking && !this.isStunned) {
+      
+      // Usamos attackCooldown para que no puedan spamear golpes
+      if (!this.isAttacking && !this.attackCooldown && !this.isStunned) {
         let attacked = false;
         let textureName = '';
 
@@ -343,6 +342,8 @@ export default class MainScene extends Phaser.Scene {
 
         if (attacked) {
           this.isAttacking = true; 
+          this.attackCooldown = true; // Bloquea el teclado
+
           this.myPlayer.setTexture(textureName); 
           socket.emit("game:attack", { userId: myUserId, texture: textureName });
 
@@ -353,16 +354,23 @@ export default class MainScene extends Phaser.Scene {
               }
           });
 
+          // Recuperas el movimiento a los 300ms
           this.time.delayedCall(300, () => {
             this.isAttacking = false;
             this.myPlayer.setTexture('idle'); 
             socket.emit("game:attack", { userId: myUserId, texture: 'idle' });
           });
+
+          // Solo puedes volver a atacar pasados 500ms (Evita la metralleta)
+          this.time.delayedCall(500, () => {
+              this.attackCooldown = false;
+          });
         }
       }
 
       if (!this.isAttacking && !this.isStunned) {
-        const speed = 5;
+        // Velocidad más táctica al estilo Castle Crashers
+        const speed = 3.5; 
         let moved = false;
 
         if (this.cursors.left.isDown || this.wasd.left.isDown) { this.myPlayer.x -= speed; moved = true; } 
@@ -385,7 +393,6 @@ export default class MainScene extends Phaser.Scene {
         }
       }
       
-      // 🔥 NUEVO: Ocultar la flecha si el jugador ya avanzó hacia ella
       if (this.goArrow && this.myPlayer.x > this.goArrow.x - 200) {
           this.goArrow.destroy();
           this.goArrow = null;
@@ -404,7 +411,7 @@ export default class MainScene extends Phaser.Scene {
       }
     }
 
-    // ENEMIGOS IA
+    // INTELIGENCIA ARTIFICIAL (HOST)
     const camX = this.cameras.main.scrollX;
 
     this.enemies.forEach(enemy => {
@@ -433,7 +440,7 @@ export default class MainScene extends Phaser.Scene {
         let minDistance = Infinity;
 
         this.players.forEach(player => {
-            if (player.isDead) return; // NO PERSEGUIR A LOS MUERTOS
+            if (player.isDead) return; 
 
             let dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
             if (dist < minDistance) {
