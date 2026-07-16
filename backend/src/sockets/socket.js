@@ -121,6 +121,11 @@ function setupSocket(io) {
         socket.to(`lobby:${socket.currentLobby}`).emit("game:ambush_cleared");
     });
 
+    // Alguien activó el escudo
+    socket.on("game:player_shield", (data) => {
+        socket.to(`lobby:${socket.currentLobby}`).emit("game:player_shielded", data);
+    });
+
     // Orden de destruir el juego y volver al lobby
     socket.on("game:return_lobby", () => {
         socket.to(`lobby:${socket.currentLobby}`).emit("game:return_lobby");
