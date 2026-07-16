@@ -49,7 +49,7 @@ export default class MainScene extends Phaser.Scene {
     g.clear();
   }
 
-  create() {
+create() {
     const slots = this.registry.get('slots');
     const socket = this.registry.get('socket');
     const myUserId = this.registry.get('myId'); 
@@ -61,17 +61,32 @@ export default class MainScene extends Phaser.Scene {
     this.myPlayer = null;  
     
     this.isAttacking = false; 
-    // Estado para evitar el spam de teclas
     this.attackCooldown = false; 
     this.isStunned = false; 
     
     this.isLocked = false; 
+    
+    //  FORZAMOS A QUE LA BANDERA SE APAGUE AL REINICIAR
+    this.isGameOver = false; 
+    
     this.enemies = [];     
     
     this.nextAmbushX = 1000; 
     this.totalEnemiesToSpawn = 0;
     this.spawnedEnemiesCount = 0;
     this.goArrow = null;
+
+    // LIMPIEZA DE MEMORIA: Al reiniciar la escena, borramos los Sockets viejos
+    this.events.once('shutdown', () => {
+        socket.off("game:player_moved");
+        socket.off("game:player_attacked");
+        socket.off("game:ambush_triggered");
+        socket.off("game:enemy_spawned");
+        socket.off("game:enemy_took_damage");
+        socket.off("game:enemy_attacked");
+        socket.off("game:player_took_damage");
+        socket.off("game:ambush_cleared");
+    });
 
     const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00];
 

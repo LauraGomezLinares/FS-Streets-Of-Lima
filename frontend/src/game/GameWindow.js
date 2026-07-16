@@ -1,69 +1,71 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import * as Phaser from "phaser"; 
 import { useLobby } from "../context/LobbyContext";
 import { useAuth } from "../context/AuthContext";
 import MainScene from "./scenes/MainScene";
 import UIScene from "./scenes/UIScene";
 
-// RECIBIMOS ONLEAVE DESDE EL LOBBY
 export default function GameWindow({ onLeave }) {
   const gameRef = useRef(null);
+  
+  // Guardamos el motor del juego para poder reiniciarlo desde React
+  const phaserGameRef = useRef(null); 
+
   const { slots } = useLobby(); 
   const { socket, user } = useAuth(); 
 
-  // ESTADOS PARA EL GAME OVER Y VOTACIONES
   const [isGameOver, setIsGameOver] = useState(false);
   const [votes, setVotes] = useState([]);
 
-  // Variables útiles para saber cuántos somos y si soy el host
   const activePlayersCount = slots.filter(p => p !== null).length;
   const isHost = slots[0]?.id === user?.id;
+
+  // Reinicia localmente los estados y las escenas de Phaser
+    const performRestart = useCallback(() => {
+      setIsGameOver(false);
+      setVotes([]);
+      if (phaserGameRef.current) {
+          const mainScene = phaserGameRef.current.scene.getScene('MainScene');
+          if (mainScene) mainScene.scene.restart();
+          
+          const uiScene = phaserGameRef.current.scene.getScene('UIScene');
+          if (uiScene) uiScene.scene.restart({ slots });
+      }
+    }, [slots]);
 
   useEffect(() => {
     const config = {
       type: Phaser.AUTO, width: 1280, height: 720,
       parent: gameRef.current, pixelArt: true, backgroundColor: '#0a0a0a',
-      physics: { default: "arcade", arcade: { gravity: { y: 0 }, debug: true } },
+      physics: { default: "arcade", arcade: { gravity: { y: 0 }, debug: false } }, // Debug apagado
       scene: [MainScene, UIScene]
     };
 
     const game = new Phaser.Game(config);
+    phaserGameRef.current = game; // Guardamos la referencia
 
     game.registry.set('slots', slots);
     game.registry.set('socket', socket);
     if (user && user.id) game.registry.set('myId', user.id); 
-    
-    // PASAMOS LA FUNCIÓN A PHASER: Así Phaser puede activar el Game Over en React
     game.registry.set('setGameOver', setIsGameOver); 
 
-    // FUNCIONES DE REINICIO POR RED
     const handleVote = (data) => setVotes(prev => [...new Set([...prev, data.userId])]);
     
-    const handleRestart = () => {
-        setIsGameOver(false);
-        setVotes([]);
-        // Reiniciamos ambas escenas de Phaser desde cero
-        const mainScene = game.scene.getScene('MainScene');
-        if (mainScene) mainScene.scene.restart();
-        const uiScene = game.scene.getScene('UIScene');
-        if (uiScene) uiScene.scene.restart();
-    };
-
+    // Escuchar el reinicio global desde el servidor
     if (socket) {
         socket.on("game:vote_restart", handleVote);
-        socket.on("game:do_restart", handleRestart);
+        socket.on("game:do_restart", performRestart);
     }
 
     return () => {
       if (socket) {
           socket.off("game:vote_restart", handleVote);
-          socket.off("game:do_restart", handleRestart);
+          socket.off("game:do_restart", performRestart);
       }
       game.destroy(true);
     };
-  }, [slots, socket, user]); 
+  }, [slots, socket, user, performRestart]);
 
-  // INTERACCIONES DE BOTONES
   const handleVoteClick = () => {
       if (socket) socket.emit("game:vote_restart", { userId: user.id });
       setVotes(prev => [...new Set([...prev, user.id])]); 
@@ -71,17 +73,12 @@ export default function GameWindow({ onLeave }) {
 
   const handleForceRestart = () => {
       if (socket) socket.emit("game:do_restart"); // Avisa a los amigos
-      
-      // Me reinicio a mí mismo localmente también
-      setIsGameOver(false);
-      setVotes([]);
-      const game = gameRef.current.querySelector('canvas')?.parentElement?.__Phaser; // Hack de seguridad
-      if(game) { }
+      performRestart();
   };
 
   const handleReturnLobby = () => {
       if (socket) socket.emit("game:return_lobby");
-      onLeave(); // Salgo yo localmente
+      onLeave(); 
   };
 
   const hasVoted = votes.includes(user?.id);
@@ -91,7 +88,6 @@ export default function GameWindow({ onLeave }) {
     <div className="relative w-full flex justify-center py-10 font-dogica">
         <div ref={gameRef} className="border-4 border-zinc-800 shadow-[0_0_30px_rgba(250,204,21,0.2)]" />
         
-        {/* PANTALLA DE GAME OVER */}
         {isGameOver && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
                 <div className="flex flex-col items-center p-12 bg-[#111] border-2 border-red-600 shadow-[0_0_50px_rgba(220,38,38,0.5)] rounded text-center">
@@ -100,13 +96,11 @@ export default function GameWindow({ onLeave }) {
                         GAME OVER
                     </h2>
                     
-                    {/* SI ESTÁS JUGANDO SOLO */}
                     {activePlayersCount === 1 ? (
                         <button onClick={handleForceRestart} className="bg-yellow-400 hover:bg-yellow-300 text-black px-10 py-4 mb-6 rounded text-sm transition-all shadow-[0_0_15px_rgba(250,204,21,0.4)]">
                             REINICIAR
                         </button>
                     ) : (
-                    /* SI ESTÁS EN MULTIJUGADOR */
                         <div className="flex flex-col items-center mb-6 w-full">
                             {isHost && allVoted ? (
                                 <button onClick={handleForceRestart} className="bg-yellow-400 hover:bg-yellow-300 text-black px-10 py-4 rounded text-sm transition-all animate-pulse shadow-[0_0_15px_rgba(250,204,21,0.6)]">
