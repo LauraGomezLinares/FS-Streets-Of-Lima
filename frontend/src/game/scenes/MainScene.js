@@ -286,7 +286,7 @@ export default class MainScene extends Phaser.Scene {
         if (this.ambushCount === 4) {
           if (this.goArrow) { this.goArrow.destroy(); this.goArrow = null; }
           const bossId = 'boss_' + Date.now();
-          this.createBoss(bossId, lockX + 1000, 360);
+          this.createBoss(bossId, lockX + 1000, 580);
           this.registry.get('socket').emit("game:spawn_enemy", { id: bossId, x: lockX + 1000, y: 360, isBoss: true });
           return;
         }
@@ -302,7 +302,7 @@ export default class MainScene extends Phaser.Scene {
               this.spawnedEnemiesCount++;
               const spawnLeft = Math.random() > 0.5;
               const spawnX = spawnLeft ? lockX - 80 : lockX + 1280 + 80;
-              const spawnY = Phaser.Math.Between(150, 680);
+              const spawnY = Phaser.Math.Between(500, 710);
               const enemyId = 'enemy_' + Date.now() + Math.random();
               const offsetX = (Math.random() * 40 + 60) * (spawnLeft ? -1 : 1); 
               const offsetY = (Math.random() * 60) - 30; 
@@ -643,7 +643,7 @@ export default class MainScene extends Phaser.Scene {
                     enemy.summonTimer = this.time.now + 5000;
                     const eId = 'enemy_' + Date.now();
                     const sX = enemy.x + Phaser.Math.Between(-100, 100);
-                    const sY = Phaser.Math.Between(150, 680);
+                    const sY = Phaser.Math.Between(500, 710);
                     this.createEnemy(eId, sX, sY, (Math.random() * 40 + 60), (Math.random() * 60) - 30);
                     socket.emit("game:spawn_enemy", { id: eId, x: sX, y: sY, offsetX: enemy.offsetX, offsetY: enemy.offsetY });
                 }
@@ -683,7 +683,7 @@ export default class MainScene extends Phaser.Scene {
                         enemy.play('boss_walk_anim');
                         enemy.wanderTarget = {
                             x: Phaser.Math.Clamp(enemy.x + Phaser.Math.Between(-300, 300), camX + 50, camX + 1200),
-                            y: Phaser.Math.Between(150, 680)
+                            y: Phaser.Math.Between(500, 710)
                         };
                     }
                 }
