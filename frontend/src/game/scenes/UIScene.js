@@ -48,7 +48,7 @@ export default class UIScene extends Phaser.Scene {
         mpFill.fillRect(baseX + 75, baseY + 38, 140, 10);
 
         // Guardamos las referencias para actualizarlas cuando recibas daño
-        this.playerBars[player.id] = { hpFill, baseX, baseY };
+        this.playerBars[player.id] = { hpFill, mpFill, baseX, baseY };
       }
     });
 
@@ -64,6 +64,15 @@ export default class UIScene extends Phaser.Scene {
             hpFill.clear();
             hpFill.fillStyle(0x22c55e, 1);
             hpFill.fillRect(baseX + 75, baseY + 20, newWidth, 12);
+        }
+    });
+    mainScene.events.on("update_mp", ({ userId, mpPercent }) => {
+        if (this.playerBars[userId]) {
+            const { mpFill, baseX, baseY } = this.playerBars[userId];
+            const newWidth = Math.max(0, 140 * mpPercent);
+            mpFill.clear();
+            mpFill.fillStyle(0x38bdf8, 1);
+            mpFill.fillRect(baseX + 75, baseY + 38, newWidth, 10);
         }
     });
   }
