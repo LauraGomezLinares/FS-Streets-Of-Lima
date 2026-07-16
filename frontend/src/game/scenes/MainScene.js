@@ -170,7 +170,7 @@ export default class MainScene extends Phaser.Scene {
       const lockX = this.cameras.main.scrollX;
       this.lockCamera(lockX);
       this.registry.get('socket').emit("game:trigger_ambush", { lockX });
-      this.totalEnemiesToSpawn = 6 + ((this.players.length - 1) * 3);
+      this.totalEnemiesToSpawn = 5 + ((this.players.length - 1) * 3);
       this.spawnedEnemiesCount = 0;
       if (this.goArrow) { this.goArrow.destroy(); this.goArrow = null; }
 
@@ -190,11 +190,14 @@ export default class MainScene extends Phaser.Scene {
       });
   }
 
-  clearAmbush() {
+clearAmbush() {
       this.isLocked = false;
+      this.cameras.main.setBounds(0, 0, 3000, 720);
+
       this.nextAmbushX = this.cameraTarget.x + 1200;
       const camX = this.cameras.main.scrollX;
       this.goArrow = this.add.sprite(camX + 1150, 360, 'arrow');
+      
       this.tweens.add({ targets: this.goArrow, x: this.goArrow.x + 20, duration: 400, yoyo: true, repeat: -1 });
   }
 
