@@ -153,7 +153,7 @@ export default class MainScene extends Phaser.Scene {
             const remoteSprite = this.remotePlayers[data.userId];
             if (remoteSprite) { remoteSprite.x = data.x; remoteSprite.y = data.y; }
         });
-        // Reemplaza el evento original por este:
+        
         socket.on("game:player_attacked", (data) => {
             const remoteSprite = this.remotePlayers[data.userId];
             if (remoteSprite) {
@@ -229,7 +229,7 @@ export default class MainScene extends Phaser.Scene {
 
     this.cameraTarget = this.add.zone(0, 0, 1, 1);
     this.cameras.main.startFollow(this.cameraTarget, true, 0.1, 0.1);
-    this.cameras.main.setBounds(0, 0, 3840, 720); // <--- Ajustado aquí
+    this.cameras.main.setBounds(0, 0, 3840, 720); 
   }
 
     triggerWin() {
@@ -287,7 +287,7 @@ export default class MainScene extends Phaser.Scene {
           if (this.goArrow) { this.goArrow.destroy(); this.goArrow = null; }
           const bossId = 'boss_' + Date.now();
           this.createBoss(bossId, lockX + 1000, 580);
-          this.registry.get('socket').emit("game:spawn_enemy", { id: bossId, x: lockX + 1000, y: 360, isBoss: true });
+          this.registry.get('socket').emit("game:spawn_enemy", { id: bossId, x: lockX + 1000, y: 580, isBoss: true });
           return;
         }
 
@@ -314,10 +314,11 @@ export default class MainScene extends Phaser.Scene {
 
     clearAmbush() {
       this.isLocked = false;
-      this.cameras.main.setBounds(0, 0, 15000, 720);
+      this.cameras.main.setBounds(0, 0, 3840, 720); 
       this.nextAmbushX = this.cameraTarget.x + 1200;
       const camX = this.cameras.main.scrollX;
-      this.goArrow = this.add.sprite(camX + 1150, 360, 'arrow');
+      
+      this.goArrow = this.add.sprite(camX + 1150, 580, 'arrow'); 
       this.tweens.add({ targets: this.goArrow, x: this.goArrow.x + 20, duration: 400, yoyo: true, repeat: -1 });
       this.sound.play('sfx_arrow', { volume: 0.8 });
 
@@ -492,16 +493,23 @@ export default class MainScene extends Phaser.Scene {
 
           this.tweens.add({
               targets: this.myPlayer,
-              x: Phaser.Math.Clamp(targetX, this.isLocked ? camX + 30 : 30, this.isLocked ? camX + 1250 : 2970),
+              x: Phaser.Math.Clamp(targetX, this.isLocked ? camX + 30 : 30, this.isLocked ? camX + 1250 : 3810), 
               y: Phaser.Math.Clamp(targetY, 500, 710),
               duration: 250, ease: 'Cubic.out',
               onUpdate: () => {
-                  // ... [lógica de colisión con enemigos y socket se mantiene igual] ...
+                  this.enemies.forEach(enemy => {
+                      if (enemy.activeStatus && !enemy.hitByDash && Phaser.Math.Distance.Between(this.myPlayer.x, this.myPlayer.y, enemy.x, enemy.y) < 60) {
+                          enemy.hitByDash = true; 
+                          this.damageEnemy(enemy.id, 1);
+                          socket.emit("game:enemy_hit", { enemyId: enemy.id, amount: 1 });
+                      }
+                  });
+                  socket.emit("game:move", { userId: myUserId, x: this.myPlayer.x, y: this.myPlayer.y });
               },
               onComplete: () => { 
                   this.isDashing = false; 
                   this.myPlayer.setAlpha(1); 
-                  this.myPlayer.play('anim_idle'); // <-- Regresamos al Idle
+                  this.myPlayer.play('anim_idle'); 
               }
           });
       }
@@ -515,13 +523,11 @@ export default class MainScene extends Phaser.Scene {
               if (!this.isCharging) { 
                   this.isCharging = true; 
                   this.chargeTime = this.time.now; 
-                  this.chargeReadyEffect = false; // Control para que el brillo salga una sola vez
+                  this.chargeReadyEffect = false; 
                   
-                  // Detenemos animación y ponemos el fotograma 0 (brazo recogido)
                   this.myPlayer.stop();
                   this.myPlayer.setTexture('profe_punch', 0);
                   
-                  // Prendemos partículas azules
                   this.chargeEmitter.startFollow(this.myPlayer, 0, 60); 
                   this.chargeEmitter.start();
               }
@@ -529,16 +535,14 @@ export default class MainScene extends Phaser.Scene {
               // Efecto visual cuando la carga supera los 500ms
               if (this.time.now - this.chargeTime > 500 && !this.chargeReadyEffect) {
                   this.chargeReadyEffect = true;
-                  this.myPlayer.setTint(0xffaa00); // Tint indicador (opcional)
+                  this.myPlayer.setTint(0xffaa00); 
 
-                  // Crear el brillo blanco en los pies
                   const glow = this.add.sprite(this.myPlayer.x, this.myPlayer.y + 30, 'white_glow').setDepth(25);
                   glow.setBlendMode(Phaser.BlendModes.ADD);
                   
-                  // Animarlo hacia arriba y desvanecerlo
                   this.tweens.add({
                       targets: glow,
-                      y: this.myPlayer.y - 30, // Sube hacia la cabeza
+                      y: this.myPlayer.y - 30, 
                       alpha: 0,
                       duration: 350,
                       ease: 'Sine.easeOut',
@@ -550,8 +554,8 @@ export default class MainScene extends Phaser.Scene {
           // 2. SOLTAR LA J
           if (this.isCharging && Phaser.Input.Keyboard.JustUp(this.wasd.j)) {
               this.isCharging = false; 
-              this.chargeEmitter.stop(); // Apagar partículas
-              this.myPlayer.setTint(this.myPlayer.originalTint); // Quitar tint de carga
+              this.chargeEmitter.stop(); 
+              this.myPlayer.setTint(this.myPlayer.originalTint); 
               
               attacked = true; 
               animName = 'anim_punch'; 
@@ -559,7 +563,7 @@ export default class MainScene extends Phaser.Scene {
               if (this.time.now - this.chargeTime > 500) damageToDeal = 3; 
           }
 
-          // 3. ATAQUES NORMALES (Kick o Punch rápido sin cargar)
+          // 3. ATAQUES NORMALES
           if (!this.isCharging) {
               if (Phaser.Input.Keyboard.JustDown(this.wasd.k)) { animName = 'anim_kick'; attacked = true; } 
               else if (!this.unlockedSkills.includes('HEAVY') && Phaser.Input.Keyboard.JustDown(this.wasd.j)) { animName = 'anim_punch'; attacked = true; }
@@ -588,7 +592,6 @@ export default class MainScene extends Phaser.Scene {
                   }
               });
 
-              // Cuando el ataque termina, vuelve al idle
               this.time.delayedCall(300, () => {
                   this.isAttacking = false; 
                   if(!this.isDashing) this.myPlayer.play('anim_idle'); 
@@ -607,16 +610,13 @@ export default class MainScene extends Phaser.Scene {
         if (this.cursors.up.isDown || this.wasd.up.isDown) { this.myPlayer.y -= speed; moved = true; dy = -1; } 
         else if (this.cursors.down.isDown || this.wasd.down.isDown) { this.myPlayer.y += speed; moved = true; dy = 1; }
 
-        // AGREGA ESTA LÍNEA PARA LIMITAR DÓNDE PUEDE PISAR EL JUGADOR:
         this.myPlayer.y = Phaser.Math.Clamp(this.myPlayer.y, 500, 710);
 
         if (dx !== 0 || dy !== 0) {
             this.lastDir = { x: dx, y: dy }; 
-            // Manejamos la dirección del sprite y su animación
-            this.myPlayer.setFlipX(dx < 0); // Si va a la izquierda, voltea el sprite
-            this.myPlayer.play('anim_walk', true); // 'true' evita que se reinicie la animación en cada frame
+            this.myPlayer.setFlipX(dx < 0); 
+            this.myPlayer.play('anim_walk', true); 
         } else if (!moved) {
-            // Si no se mueve, regresa a la animación de descanso
             this.myPlayer.play('anim_idle', true);
         }
       }
@@ -648,7 +648,6 @@ export default class MainScene extends Phaser.Scene {
                     socket.emit("game:spawn_enemy", { id: eId, x: sX, y: sY, offsetX: enemy.offsetX, offsetY: enemy.offsetY });
                 }
 
-                // Sacar al Boss del estado HURT para que vuelva a moverse
                 if (enemy.state === 'HURT') {
                     if (this.time.now > enemy.hurtTimer) {
                         enemy.state = 'MOVE';
@@ -658,7 +657,6 @@ export default class MainScene extends Phaser.Scene {
                     return; 
                 }
 
-                // Máquina de Estados (Moverse vs Atacar)
                 if (this.time.now > enemy.stateTimer) {
                     if (enemy.state === 'MOVE') {
                         enemy.state = 'ATTACK';
@@ -666,12 +664,11 @@ export default class MainScene extends Phaser.Scene {
                         enemy.stop(); 
                         enemy.setTexture('boss_atk');
                         
-                        // Bombas dirigidas a los jugadores vivos
                         const spots = [];
                         this.players.forEach(p => {
                             if (!p.isDead) {
-                                spots.push({ x: p.x, y: p.y }); // Un billete cae EXACTAMENTE encima del jugador
-                                spots.push({ x: p.x + Phaser.Math.Between(-120, 120), y: p.y + Phaser.Math.Between(-60, 60) }); // Otro cae cerca
+                                spots.push({ x: p.x, y: p.y }); 
+                                spots.push({ x: p.x + Phaser.Math.Between(-120, 120), y: p.y + Phaser.Math.Between(-60, 60) }); 
                             }
                         });
                         
@@ -688,7 +685,6 @@ export default class MainScene extends Phaser.Scene {
                     }
                 }
 
-                // Ejecución del movimiento lento
                 if (enemy.state === 'MOVE' && enemy.wanderTarget) {
                     const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, enemy.wanderTarget.x, enemy.wanderTarget.y);
                     if (dist > 15) {
@@ -697,7 +693,7 @@ export default class MainScene extends Phaser.Scene {
                         enemy.y += Math.sin(angle) * 0.7;
                     }
                 }
-                return;// Evita que ejecute la lógica de los enemigos normales
+                return;
             }
 
             // 🔥 INTELIGENCIA DE ENEMIGOS NORMALES
@@ -761,7 +757,7 @@ export default class MainScene extends Phaser.Scene {
                     }
                 } 
                 else if (enemy.state === 'WANDER') {
-                    if (!enemy.wanderTarget) { enemy.wanderTarget = { x: Phaser.Math.Between(camX + 50, camX + 1230), y: Phaser.Math.Between(150, 680) }; }
+                    if (!enemy.wanderTarget) { enemy.wanderTarget = { x: Phaser.Math.Between(camX + 50, camX + 1230), y: Phaser.Math.Between(500, 710) }; }
                     const distToWander = Phaser.Math.Distance.Between(enemy.x, enemy.y, enemy.wanderTarget.x, enemy.wanderTarget.y);
                     if (distToWander < 10) enemy.wanderTarget = null;
                     else {
