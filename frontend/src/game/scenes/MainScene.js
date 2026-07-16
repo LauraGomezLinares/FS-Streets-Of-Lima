@@ -336,7 +336,7 @@ export default class MainScene extends Phaser.Scene {
               targets: enemy, scaleX: 0, scaleY: 0, duration: 200,
               onComplete: () => {
                   enemy.destroy();
-                  if (this.isHost && this.isLocked && this.spawnedEnemiesCount === this.totalEnemiesToSpawn && this.ambushCount < 3) {
+                  if (this.isHost && this.isLocked && this.spawnedEnemiesCount === this.totalEnemiesToSpawn && this.ambushCount < 4) {
                       const allDead = this.enemies.every(e => !e.activeStatus || e.isBoss);
                       if (allDead) { this.clearAmbush(); this.registry.get('socket').emit("game:ambush_cleared"); }
                   }

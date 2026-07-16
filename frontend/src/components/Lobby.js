@@ -23,11 +23,27 @@ export default function Lobby() {
 
     //  Efecto para cargar el Leaderboard al entrar al Lobby
     useEffect(() => {
+        // Cargar el Ranking Global
         fetch("https://fs-streets-of-lima-backend.onrender.com/auth/leaderboard")
             .then(res => res.json())
             .then(data => setLeaderboard(data))
             .catch(err => console.error("Error cargando ranking:", err));
-    }, []);
+
+        // Refrescar tu perfil en silencio para igualar las horas del Ranking
+        if (token) {
+            fetch("https://fs-streets-of-lima-backend.onrender.com/auth/me", {
+                headers: { "Authorization": `Bearer ${token}` }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.error) {
+                    setUser(data);
+                    localStorage.setItem("sol_user", JSON.stringify(data));
+                }
+            })
+            .catch(err => console.error("Error actualizando perfil:", err));
+        }
+    }, [token, setUser]);
 
     //  Convertidor de segundos a Horas y Minutos
     const formatTime = (seconds) => {

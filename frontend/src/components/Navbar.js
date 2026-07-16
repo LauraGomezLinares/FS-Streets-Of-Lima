@@ -222,7 +222,7 @@ export default function Navbar() {
     }
   };
 
-  // 🔥 NUEVO: Los links base
+  //  Los links base
   const navLinks = [
     { to: "/", label: "HOME" },
     { to: "/cosmetics_store", label: "SHOP" },
@@ -230,7 +230,7 @@ export default function Navbar() {
     { to: "/premium_store", label: "SUNNYS" },
   ];
 
-  // 🔥 NUEVO: Si es admin, inyectamos la pestaña nueva en el Navbar
+  //  Si es admin, inyectamos la pestaña nueva en el Navbar
   if (isAdmin) {
     navLinks.push({ to: "/admin", label: "CONTROLES ADMIN", isAdminLink: true });
   }
