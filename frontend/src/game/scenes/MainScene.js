@@ -105,7 +105,7 @@ export default class MainScene extends Phaser.Scene {
 
     slots.forEach((playerData, index) => {
       if (playerData) {
-        const playerSprite = this.add.sprite(200 + (index * 100), 300, 'profe_idle');
+        const playerSprite = this.add.sprite(200 + (index * 100), 550, 'profe_idle');
         playerSprite.play('anim_idle');
         
         playerSprite.setScale(2.5);
@@ -621,7 +621,8 @@ export default class MainScene extends Phaser.Scene {
         if (dx !== 0 || dy !== 0) {
             this.lastDir = { x: dx, y: dy }; 
             this.myPlayer.setFlipX(dx < 0); 
-            this.myPlayer.play('anim_walk', true); 
+            this.myPlayer.play('anim_walk', true);
+            socket.emit("game:move", { userId: myUserId, x: this.myPlayer.x, y: this.myPlayer.y }); 
         } else if (!moved) {
             this.myPlayer.play('anim_idle', true);
         }
