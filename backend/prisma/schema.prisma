@@ -37,6 +37,12 @@ model User {
   friendsOf     Friendship[] @relation("UserFriends")
   friendOf      Friendship[] @relation("FriendOfUser")
   loginLogs     LoginLog[]
+
+  sunnys            Int       @default(0)
+  skillPoints       Int       @default(3) 
+  unlockedAvatars   String[]  @default([])
+  xpBoostMultiplier Float     @default(1.0)
+  xpBoostEndsAt     DateTime?
 }
 
 model Character {

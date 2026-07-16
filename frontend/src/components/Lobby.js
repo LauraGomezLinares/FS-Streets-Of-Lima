@@ -164,20 +164,24 @@ export default function Lobby() {
                     <img src={idleGif} alt="Idle Character" className="relative z-10 w-full h-full object-contain rendering-pixelated filter drop-shadow-[0_0_15px_rgba(255,220,50,0.3)]" />
                 </div>
 
-                <div className="w-full max-w-[250px]">
-                    <button 
-                        onClick={() => handleProtectedAction("skills")}
-                        className="w-full bg-zinc-900 border border-zinc-700 hover:border-yellow-400 text-zinc-300 text-[10px] py-3 tracking-widest transition-colors flex justify-between px-4 items-center rounded"
-                    >
-                        <span>SKILL TREE</span>
-                        <span className="text-yellow-400">{isSkillTreeOpen ? "▼" : "▶"}</span>
-                    </button>
+                <div className="w-full mt-6 bg-[#111] border border-zinc-800 p-4">
+                    <div className="flex justify-between items-center mb-4 cursor-pointer" onClick={() => handleProtectedAction("skills")}>
+                        <span className="text-zinc-300 text-xs tracking-widest">SKILL TREE</span>
+                        <span className="text-yellow-400">▼</span>
+                    </div>
 
-                    {isSkillTreeOpen && user && (
-                        <div className="w-full bg-[#111] border border-zinc-800 border-t-0 p-3 rounded-b flex flex-col gap-2">
-                            <div className="text-[8px] text-zinc-500 tracking-widest mb-1">AVAILABLE POINTS: 3</div>
-                            <button className="bg-zinc-800 border border-zinc-600 text-[9px] p-2 hover:border-yellow-400 text-left">[+] DASH MASTERY</button>
-                            <button className="bg-zinc-800 border border-zinc-600 text-[9px] p-2 hover:border-yellow-400 text-left">[+] HEAVY PUNCH</button>
+                    {isSkillTreeOpen && (
+                        <div className="flex flex-col gap-3">
+                            <div className="text-[10px] text-zinc-500 mb-2">
+                                AVAILABLE POINTS: {user?.skillPoints || 0}
+                            </div>
+                            
+                            <button className="bg-zinc-900 border border-zinc-700 hover:border-yellow-400 text-zinc-400 hover:text-yellow-400 py-3 text-[10px] tracking-widest transition-colors text-left px-4">
+                                [+] DASH MASTERY
+                            </button>
+                            <button className="bg-zinc-900 border border-zinc-700 hover:border-yellow-400 text-zinc-400 hover:text-yellow-400 py-3 text-[10px] tracking-widest transition-colors text-left px-4">
+                                [+] HEAVY PUNCH
+                            </button>
                         </div>
                     )}
                 </div>

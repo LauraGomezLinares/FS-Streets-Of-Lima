@@ -27,13 +27,48 @@ async function claimReward(req, res) {
     if (levelToClaim > bp.level) return res.status(400).json({ error: "Nivel aún no alcanzado." });
     if (bp.claimedLevels.includes(levelToClaim)) return res.status(400).json({ error: "Recompensa ya reclamada." });
 
-    // Actualizamos el arreglo de niveles reclamados
-    const updatedBp = await prisma.battlePassProgress.update({
-      where: { id: bp.id },
-      data: { claimedLevels: { push: levelToClaim } }
-    });
+    // LOGICA DE RECOMPENSAS EXACTAS
+    let sunnysToAdd = 0;
+    let skillPointsToAdd = 0;
+    let avatarToAdd = null;
+    let xpMult = null;
+    let xpHours = 0;
 
-    res.json({ success: true, claimedLevels: updatedBp.claimedLevels });
+    if ([3, 6, 9, 12].includes(levelToClaim)) sunnysToAdd = 100;
+    else if ([14, 16, 19].includes(levelToClaim)) sunnysToAdd = 150;
+    else if ([5, 10, 15].includes(levelToClaim)) { xpMult = 1.15; xpHours = 2; }
+    else if (levelToClaim === 20) { xpMult = 1.20; xpHours = 2; }
+    else if (levelToClaim === 18) avatarToAdd = "CUY";
+    else skillPointsToAdd = 1; // 1, 2, 4, 7, 8, 11, 13, 17
+
+    // Preparar datos de actualización de usuario
+    const userUpdateData = {
+        sunnys: { increment: sunnysToAdd },
+        skillPoints: { increment: skillPointsToAdd }
+    };
+
+    if (avatarToAdd) userUpdateData.unlockedAvatars = { push: avatarToAdd };
+    if (xpMult) {
+        userUpdateData.xpBoostMultiplier = xpMult;
+        const endDate = new Date();
+        endDate.setHours(endDate.getHours() + xpHours);
+        userUpdateData.xpBoostEndsAt = endDate;
+    }
+
+    // Ejecutamos ambas actualizaciones al mismo tiempo (Transacción)
+    const [updatedBp, updatedUser] = await prisma.$transaction([
+      prisma.battlePassProgress.update({
+        where: { id: bp.id },
+        data: { claimedLevels: { push: levelToClaim } }
+      }),
+      prisma.user.update({
+        where: { id: req.user.id },
+        data: userUpdateData,
+        select: { id: true, username: true, email: true, role: true, sunnys: true, skillPoints: true }
+      })
+    ]);
+
+    res.json({ success: true, claimedLevels: updatedBp.claimedLevels, updatedUser });
   } catch (error) {
     console.error("Error reclamando recompensa:", error);
     res.status(500).json({ error: "Error al reclamar la recompensa." });

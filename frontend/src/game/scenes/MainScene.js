@@ -48,7 +48,7 @@ export default class MainScene extends Phaser.Scene {
     g.generateTexture('arrow', 70, 60);
     g.clear();
 
-    // 🔥 NUEVO: Textura del Escudo (Burbuja Celeste semi-transparente)
+    // Textura del Escudo (Burbuja Celeste semi-transparente)
     g.fillStyle(0x38bdf8, 0.4); 
     g.lineStyle(2, 0x38bdf8, 1);
     g.fillCircle(40, 40, 40);
@@ -75,7 +75,7 @@ export default class MainScene extends Phaser.Scene {
     this.isGameOver = false; 
     this.enemies = [];     
     
-    // 🔥 NUEVO: Diccionario para manejar los gráficos de escudos de todos
+    //  NUEVO: Diccionario para manejar los gráficos de escudos de todos
     this.shieldGraphics = {};
     
     this.nextAmbushX = 1000; 
@@ -104,7 +104,7 @@ export default class MainScene extends Phaser.Scene {
         playerSprite.id = playerData.id;
         playerSprite.hp = 100; 
         
-        // 🔥 NUEVO: Estadísticas de energía y estado de escudo
+        //  Estadísticas de energía y estado de escudo
         playerSprite.mp = 100; 
         playerSprite.isShielded = false;
         
@@ -120,7 +120,7 @@ export default class MainScene extends Phaser.Scene {
           this.remotePlayers[playerData.id] = playerSprite;
         }
 
-        // 🔥 NUEVO: Añadimos la imagen del escudo oculta encima del jugador
+        //  NUEVO: Añadimos la imagen del escudo oculta encima del jugador
         const shieldSprite = this.add.sprite(playerSprite.x, playerSprite.y, 'shield');
         shieldSprite.setVisible(false);
         shieldSprite.setDepth(10); // Que se dibuje por encima de todo
@@ -141,7 +141,7 @@ export default class MainScene extends Phaser.Scene {
         up: Phaser.Input.Keyboard.KeyCodes.W, down: Phaser.Input.Keyboard.KeyCodes.S,
         left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D,
         j: Phaser.Input.Keyboard.KeyCodes.J, k: Phaser.Input.Keyboard.KeyCodes.K,
-        l: Phaser.Input.Keyboard.KeyCodes.L // 🔥 Añadimos la tecla L
+        l: Phaser.Input.Keyboard.KeyCodes.L // Añadimos la tecla L
     });
 
     // =====================================
@@ -193,7 +193,7 @@ export default class MainScene extends Phaser.Scene {
         this.clearAmbush();
     });
 
-    // 🔥 NUEVO: Recibir activación de escudo de otro jugador
+    //  NUEVO: Recibir activación de escudo de otro jugador
     socket.on("game:player_shielded", (data) => {
         const remoteSprite = this.remotePlayers[data.userId];
         const shieldSprite = this.shieldGraphics[data.userId];
@@ -222,7 +222,7 @@ export default class MainScene extends Phaser.Scene {
       const pSprite = this.players.find(p => p.id === userId);
       if (!pSprite || pSprite.isDead) return;
 
-      // 🔥 NUEVO: Inmunidad total si tiene el escudo activo
+      //  NUEVO: Inmunidad total si tiene el escudo activo
       if (pSprite.isShielded) return;
 
       pSprite.hp -= amount;
@@ -377,7 +377,7 @@ export default class MainScene extends Phaser.Scene {
         this.startAmbush();
     }
 
-    // 🔥 NUEVO: Mantener pegado el escudo a las coordenadas de cada jugador que lo tenga activo
+    //  Mantener pegado el escudo a las coordenadas de cada jugador que lo tenga activo
     this.players.forEach(p => {
         if (this.shieldGraphics[p.id]) {
             this.shieldGraphics[p.id].x = p.x;
@@ -387,25 +387,25 @@ export default class MainScene extends Phaser.Scene {
 
     if (this.myPlayer && !this.myPlayer.isDead) {
 
-      // 🔥 NUEVO: Sistema de regeneración de Energía (MP)
+      //  Sistema de regeneración de Energía (MP)
       if (this.myPlayer.mp < 100) {
-          this.myPlayer.mp += 0.2; // Rellena lentamente a 60 frames por segundo
+          this.myPlayer.mp += 0.05; // Rellena lentamente a 60 frames por segundo
           if (this.myPlayer.mp > 100) this.myPlayer.mp = 100;
           this.events.emit("update_mp", { userId: myUserId, mpPercent: this.myPlayer.mp / 100 });
       }
       
-      // 🔥 NUEVO: Activar Escudo con la 'L'
+      //  NUEVO: Activar Escudo con la 'L'
       if (Phaser.Input.Keyboard.JustDown(this.wasd.l) && this.myPlayer.mp >= 70 && !this.myPlayer.isShielded && !this.isStunned) {
-          // 1. Vaciar la energía usada
+          // Vaciar la energía usada
           this.myPlayer.mp -= 70;
           this.events.emit("update_mp", { userId: myUserId, mpPercent: this.myPlayer.mp / 100 });
           
-          // 2. Activar estados y visuales
+          // Activar estados y visuales
           this.myPlayer.isShielded = true;
           if (this.shieldGraphics[myUserId]) this.shieldGraphics[myUserId].setVisible(true);
           socket.emit("game:player_shield", { userId: myUserId });
 
-          // 3. Empuje (Knockback) en Área
+          // Empuje (Knockback) en Área
           this.enemies.forEach(enemy => {
               if (enemy.activeStatus && Phaser.Math.Distance.Between(this.myPlayer.x, this.myPlayer.y, enemy.x, enemy.y) < 140) {
                   const angle = Phaser.Math.Angle.Between(this.myPlayer.x, this.myPlayer.y, enemy.x, enemy.y);
@@ -426,7 +426,7 @@ export default class MainScene extends Phaser.Scene {
               }
           });
 
-          // 4. Apagar escudo a los 2 segundos
+          // Apagar escudo a los 2 segundos
           this.time.delayedCall(2000, () => {
               this.myPlayer.isShielded = false;
               if (this.shieldGraphics[myUserId]) this.shieldGraphics[myUserId].setVisible(false);

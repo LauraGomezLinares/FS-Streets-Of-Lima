@@ -138,10 +138,17 @@ export default function BattlePass() {
         body: JSON.stringify({ levelToClaim: lvlToClaim })
       });
       
-      if (res.ok) {
+    if (res.ok) {
         const data = await res.json();
         setClaimedFree(data.claimedLevels);
-        // 🔥 Lanza notificación Stacked
+        
+        // ACTUALIZAR EL USUARIO GLOBAL
+        if (data.updatedUser) {
+            const newUserObj = { ...user, ...data.updatedUser };
+            setUser(newUserObj);
+            localStorage.setItem("sol_user", JSON.stringify(newUserObj));
+        }
+
         setPopups(prev => [...prev, { id: Date.now() + Math.random(), title: "RECLAMADO", text: rewardText }]);
       }
     } catch (error) {
@@ -245,10 +252,15 @@ export default function BattlePass() {
                 {Array.from({ length: totalLevels }).map((_, i) => {
                   const currentLvl = i + 1;
                   const isUnlocked = currentLvl <= level;
-                  const isEvenLevel = currentLvl % 2 === 0;
-                  const rewardText = isEvenLevel ? '1x HP BOTTLE' : '2x XP BOOST';
                   const isFreeClaimed = claimedFree.includes(currentLvl);
                   const canClaimFree = isUnlocked && !isFreeClaimed;
+
+                  let rewardText = "+1 SKILL PT";
+                  if ([5, 10, 15].includes(currentLvl)) rewardText = "+15% XP (2H)";
+                  else if (currentLvl === 20) rewardText = "+20% XP (2H)";
+                  else if ([3, 6, 9, 12].includes(currentLvl)) rewardText = "100 SUNNYS";
+                  else if ([14, 16, 19].includes(currentLvl)) rewardText = "150 SUNNYS";
+                  else if (currentLvl === 18) rewardText = "CUY AVATAR";
 
                   return (
                     <div key={currentLvl} className="flex w-32 flex-col border-r border-zinc-800 bg-[#0a0a0a]">

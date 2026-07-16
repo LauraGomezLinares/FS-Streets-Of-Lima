@@ -220,6 +220,8 @@ async function me(req, res) {
       email: user.email,
       role: user.role,
       battlePass: user.battlePassProgress,
+      sunnys: user.sunnys,
+      skillPoints: user.skillPoints,
     });
   } catch (err) {
     console.error(err);
